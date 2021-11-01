@@ -1,0 +1,23 @@
+weights: ['weights/x6_last.pt']
+
+path: '/home/agc2021/dataset/'
+names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
+labels: {
+  'paper': 'c_1',
+  'paperpack': 'c_2',
+  'can': 'c_3',
+  'glass': 'c_4',
+  'pet': 'c_5',
+  'plastic': 'c_6',
+  'vinyl': 'c_7'
+}
+
+imgsz: 1280
+conf: 0.6
+iou: 0.8
+max-det: 30
+
+agnostic-nms: False
+augment: False
+half: False
+fuse: False

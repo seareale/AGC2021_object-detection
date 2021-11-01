@@ -1,0 +1,9 @@
+# log
+.lh/
+.vscode/
+__pycache__/
+
+# file
+config_2.yaml
+*.ipynb
+*.json
