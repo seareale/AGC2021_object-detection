@@ -4,10 +4,10 @@ PyTorch utils
 """
 
 import datetime
-import logging
+# import logging
 import math
 import os
-import platform
+# import platform
 import subprocess
 import time
 from contextlib import contextmanager
@@ -26,7 +26,7 @@ try:
 except ImportError:
     thop = None
 
-LOGGER = logging.getLogger(__name__)
+# LOGGER = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -89,7 +89,7 @@ def select_device(device='', batch_size=None):
     else:
         s += 'CPU\n'
 
-    LOGGER.info(s.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else s)  # emoji-safe
+    # LOGGER.info(s.encode().decode('ascii', 'ignore') if platform.system() == 'Windows' else s)  # emoji-safe
     return torch.device('cuda:0' if cuda else 'cpu')
 
 
@@ -249,7 +249,7 @@ def model_info(model, verbose=False, img_size=640):
     except (ImportError, Exception):
         fs = ''
 
-    LOGGER.info(f"Model Summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}")
+    # LOGGER.info(f"Model Summary: {len(list(model.modules()))} layers, {n_p} parameters, {n_g} gradients{fs}")
 
 
 def load_classifier(name='resnet101', n=2):
@@ -309,7 +309,8 @@ class EarlyStopping:
         self.possible_stop = delta >= (self.patience - 1)  # possible stop may occur next epoch
         stop = delta >= self.patience  # stop training if patience exceeded
         if stop:
-            LOGGER.info(f'EarlyStopping patience {self.patience} exceeded, stopping training.')
+            pass
+            # LOGGER.info(f'EarlyStopping patience {self.patience} exceeded, stopping training.')
         return stop
 
 
