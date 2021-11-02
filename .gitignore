@@ -5,5 +5,7 @@ __pycache__/
 
 # file
 config_2.yaml
+install.txt
+*.pt
 *.ipynb
 *.json
