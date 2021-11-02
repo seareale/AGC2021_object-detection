@@ -2,12 +2,11 @@ import glob
 import os
 from pathlib import Path
 import cv2
-from PIL import Image, ExifTags
+from PIL import Image
 import numpy as np
 
 
 IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
-
 
 class LoadImages:  # for inference
     def __init__(self, path, img_size=640, stride=32, auto=True):
