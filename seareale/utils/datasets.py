@@ -116,3 +116,4 @@ def exif_transpose(image):
             del exif[0x0112]
             image.info["exif"] = exif.tobytes()
     return image
+

@@ -21,13 +21,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+
 try:
     import thop  # for FLOPs computation
 except ImportError:
     thop = None
 
 # LOGGER = logging.getLogger(__name__)
-
 
 @contextmanager
 def torch_distributed_zero_first(local_rank: int):

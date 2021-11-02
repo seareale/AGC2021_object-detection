@@ -18,7 +18,6 @@ from utils.general import *
 if __name__ == "__main__":
     all_t1 = time.time()
 
-
     # load config and hyp
     weights, source, names, imgsz, conf_thres, iou_thres, max_det, agnostic_nms, augment, half, fuse = load_hyp('config.yaml')
     imgsz = [imgsz]*2
