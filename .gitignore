@@ -1,11 +1,13 @@
-# log
+# cache
 .lh/
 .vscode/
 __pycache__/
 
+# log
+*.json
+AGC2021_confMat/
+
 # file
-config_2.yaml
 install.txt
 *.pt
 *.ipynb
-*.json

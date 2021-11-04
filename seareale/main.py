@@ -10,6 +10,7 @@ import os
 import time
 import json
 import torch
+from tqdm import tqdm
 
 from utils.datasets import LoadImages
 from utils.general import *
@@ -35,12 +36,6 @@ if __name__ == "__main__":
 
     # load datasets
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=True)
-    # TODO
-    ##################
-    # TTA
-    #
-    #
-    #
 
     # run once
     model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters()))) 
@@ -51,7 +46,7 @@ if __name__ == "__main__":
     # inference
     dict_json = {'answer':[]}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
-    for path, img, im0 in dataset:
+    for path, img, im0 in tqdm(dataset):
         t1 = time_sync() # start time
 
         # Process img
@@ -65,6 +60,13 @@ if __name__ == "__main__":
 
         # Inference
         pred = model(img, augment=augment)[0]
+        # TODO
+        ##################
+        # TTA
+        #
+        #
+        #
+
         t3 = time_sync() # inference time
         dt[1] += t3 - t2
 
@@ -83,24 +85,26 @@ if __name__ == "__main__":
         for i, det in enumerate(pred):  # per image (= per one TTA)
             seen += 1
 
+            # Rescale boxes from img_size to im0 size
             if len(det):
-                # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
-            for cls_num in det[:,5]:
-                # TODO
-                ##################################                
-                # Remove outbound bbox
-                #
-                #
-                #
+            # Remove outbound bbox
+            bboxes = xyxy2xywh(det[:, :4])
+            for idx, bbox in enumerate(bboxes):
+                h,w = im0.shape[:2]
+                if is_outbound(bbox, (w,h),  offset=10):
+                    det[idx, 5] = -1
 
+            # count objects
+            for cls_num in det[:,5]:
                 cls_num = int(cls_num) 
                 if cls_num not in dict_count.keys():
                     dict_count[cls_num] = 1
                 else :
                     dict_count[cls_num] += 1
         
+        # results to dict
         for k,v in dict_count.items():
             dict_file['result'].append({'label':names[k],'count':v})
         dict_json['answer'].append(dict_file)

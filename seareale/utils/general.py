@@ -15,6 +15,39 @@ import time
 from utils.metrics import box_iou
 
 
+def xyxy2xywh(x):
+    # Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h] where xy1=top-left, xy2=bottom-right
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[:, 0] = (x[:, 0] + x[:, 2]) / 2  # x center
+    y[:, 1] = (x[:, 1] + x[:, 3]) / 2  # y center
+    y[:, 2] = x[:, 2] - x[:, 0]  # width
+    y[:, 3] = x[:, 3] - x[:, 1]  # height
+    return y
+
+def is_outbound(points, image_size, offset=10):
+    w, h = image_size
+    boundary = [(10, 10),
+                (w-10, 10),
+                (w-10, h-10),
+                (10, h-10)]
+    coord_1 = int(points[0] - points[2]/2), int(points[1] - points[3]/2)
+    coord_2 = int(points[0] + points[2]/2), int(points[1] - points[3]/2)
+    coord_3 = int(points[0] + points[2]/2), int(points[1] + points[3]/2)
+    coord_4 = int(points[0] - points[2]/2), int(points[1] + points[3]/2)
+    points = [coord_1, coord_2, coord_3, coord_4]
+
+    for idx, ((x0, y0), (x1, y1)) in enumerate(zip(points, boundary)):
+        if idx == 0 and (x0 < x1 or y0 < y1):
+            return 1
+        if idx == 1 and (x0 > x1 or y0 < y1):
+            return 2
+        if idx == 2 and (x0 > x1 or y0 > y1):
+            return 3
+        if idx == 3 and (x0 < x1 or y0 > y1):
+            return 4
+    
+    return False
+
 def load_hyp(hyp_path):
     with open(hyp_path) as f:
         hyp = yaml.safe_load(f)

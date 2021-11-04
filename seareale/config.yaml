@@ -1,7 +1,13 @@
-weights: ['weights/best.pt']
+weights: ['/ssd_2/haejin/yolov5/runs/train/agc2021_s6_1101_a1031_coco-neck-det/weights/best.pt'] 
+# ['/ssd_2/haejin/yolov5/runs/train/agc2021_s6_1101_a1031/weights/best.pt']
+# ['weights/best.pt']
 
 # path: '/home/agc2021/dataset/'
-path: '/ssd_2/RecycleTrash/yolo/images/AGC2021_sample/'
+path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
+        # '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
+        '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
+        # '/ssd_2/RecycleTrash/yolo/images/test_211103_400'
+      ]
 names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
 labels: {
   'paper': 'c_1',
@@ -16,9 +22,10 @@ labels: {
 imgsz: 1280
 conf: 0.6
 iou: 0.8
-max-det: 30
+max-det: 20
+# 140 # 7 * 20 (class_num * max_object_num) 
 
-agnostic-nms: False
+agnostic-nms: True
 augment: False
-half: False
-fuse: False
+half: True
+fuse: True

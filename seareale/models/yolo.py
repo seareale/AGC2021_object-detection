@@ -19,6 +19,8 @@ from models.common import *
 from utils.general import make_divisible, check_anchor_order
 # from utils.plots import feature_visualization
 from utils.torch_utils import fuse_conv_and_bn, initialize_weights, model_info, scale_img, time_sync
+from utils.augments import Transform
+
 
 try:
     import thop  # for FLOPs computation
@@ -121,10 +123,16 @@ class Model(nn.Module):
 
     def forward_augment(self, x):
         img_size = x.shape[-2:]  # height, width
-        s = [1, 0.83, 0.67]  # scales
+        # s = [1, 0.83, 0.67]  # scales
+        s = [1.5, 1.3, 1]
         f = [None, 3, None]  # flips (2-ud, 3-lr)
+        # f = [None, 2]
         y = []  # outputs
         for si, fi in zip(s, f):
+        # for si in s:
+        #     for fi in f:
+            # xi = scale_img(Transform(x.flip(fi)) if fi else Transform(x), si, gs=int(self.stride.max()))
+            # xi = scale_img(x, si, gs=int(self.stride.max()))
             xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride.max()))
             yi = self.forward_once(xi)[0]  # forward
             # cv2.imwrite(f'img_{si}.jpg', 255 * xi[0].cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])  # save

@@ -10,18 +10,19 @@ IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']
 
 class LoadImages:  # for inference
     def __init__(self, path, img_size=640, stride=32, auto=True):
-        p = str(Path(path).resolve())  # os-agnostic absolute path
 
-        if '*' in p:
-            files = sorted(glob.glob(p, recursive=True))  # glob
-        elif os.path.isdir(p):
-            files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
-        elif os.path.isfile(p):
-            files = [p]  # files
-        else:
-            raise Exception(f'ERROR: {p} does not exist')
+        files = []
+        for p in path if isinstance(path, list) else [path]:
+            p = Path(p)
+            if p.is_dir():
+                files += glob.glob(str(p / '**' / '*.*'), recursive=True)
+            else:
+                raise Exception(f'{p} is not directory')
+        images = sorted([x for x in files if x.split('.')[-1].lower() in IMG_FORMATS])
 
-        images = [x for x in files if x.split('.')[-1].lower() in IMG_FORMATS]
+        # images *= 5
+        print('>> # of images :', len(images))
+        
         ni = len(images)
 
         self.img_size = img_size
