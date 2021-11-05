@@ -51,8 +51,9 @@ if __name__ == "__main__":
         # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
         # TTA_SCALE = [1, 1.3, 1.5]
         
-        TTA_AUG = [oda.HorizontalFlip(), oda.VerticalFlip(), oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
-        TTA_SCALE = [1, 1.3, 1.5]
+        TTA_AUG = [oda.HorizontalFlip(), oda.Rotate90Left(), oda.Rotate90Right()]  
+        #oda.HorizontalFlip(), oda.VerticalFlip(), oda.Multiply(0.9), oda.Multiply(1.1)]
+        TTA_SCALE = [0.5, 1, 1.3, 1.5]
 
         # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
         # TTA_SCALE = [1, 1.3, 1.5]
@@ -98,6 +99,7 @@ if __name__ == "__main__":
 
             # NMS
             pred = non_max_suppression(pred, conf_thres, iou_thres, None, agnostic_nms, multi_label=False, max_det=max_det)
+            # pred = non_max_suppression(pred, conf_thres, iou_thres, multi_label=True, max_det=max_det)
             t4 = time_sync() # NMS time
             dt[2] += t4 - t3
         
@@ -125,6 +127,8 @@ if __name__ == "__main__":
                         det[idx, 5] = -1
 
                 # TODO: outbound bbox for TTA (1280x1280)
+                # remove oversize bbox
+                # remove undersize bbox
 
             # count objects
             for cls_num in det[:,5]:

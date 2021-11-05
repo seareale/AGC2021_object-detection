@@ -17,6 +17,7 @@ class Base():
     def deaugment_boxes(self, boxes):
         raise NotImplementedError
 
+# TODO: colorJitter
         
 class HorizontalFlip(Base):
     def augment(self, image):
