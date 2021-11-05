@@ -48,15 +48,10 @@ if __name__ == "__main__":
 
     # inits for TTA
     if tta:
-        # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
-        # TTA_SCALE = [1, 1.3, 1.5]
-        
         TTA_AUG = [oda.HorizontalFlip(), oda.Rotate90Left(), oda.Rotate90Right()]  
         #oda.HorizontalFlip(), oda.VerticalFlip(), oda.Multiply(0.9), oda.Multiply(1.1)]
         TTA_SCALE = [0.5, 1, 1.3, 1.5]
-
-        # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
-        # TTA_SCALE = [1, 1.3, 1.5]
+        
         yolov5 = oda.wrap_yolov5(model, non_max_suppression)
         tta_model = oda.TTAWrapper(yolov5, TTA_AUG, TTA_SCALE)
 
