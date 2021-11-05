@@ -24,12 +24,12 @@ def xyxy2xywh(x):
     y[:, 3] = x[:, 3] - x[:, 1]  # height
     return y
 
-def is_outbound(points, image_size, offset=10):
+def is_outbound(points, image_size,  offset=10):
     w, h = image_size
-    boundary = [(10, 10),
-                (w-10, 10),
-                (w-10, h-10),
-                (10, h-10)]
+    boundary = [(offset, offset),
+                (w-offset, offset),
+                (w-offset, h-offset),
+                (offset, h-offset)]
     coord_1 = int(points[0] - points[2]/2), int(points[1] - points[3]/2)
     coord_2 = int(points[0] + points[2]/2), int(points[1] - points[3]/2)
     coord_3 = int(points[0] + points[2]/2), int(points[1] + points[3]/2)
@@ -47,14 +47,6 @@ def is_outbound(points, image_size, offset=10):
             return 4
     
     return False
-
-def load_hyp(hyp_path):
-    with open(hyp_path) as f:
-        hyp = yaml.safe_load(f)
-
-    return hyp['weights'], hyp['path'], hyp['names'], \
-        hyp['imgsz'], hyp['conf'], hyp['iou'], hyp['max-det'], \
-        hyp['agnostic-nms'], hyp['tta'], hyp['half'], hyp['fuse']
 
 def clip_coords(boxes, shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)

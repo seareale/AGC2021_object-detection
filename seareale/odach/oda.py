@@ -305,7 +305,7 @@ class wrap_yolov5:
         self.model = model
         self.nms = nms
     
-    def __call__(self, img, conf_thres=0.2, iou_thres=0.6, agnostic_nms=False, multi_label=True, max_det=1000):       
+    def __call__(self, img, conf_thres=0.2, iou_thres=0.6, agnostic_nms=False, multi_label=True, max_det=140):       
         # inference
         pred = self.model(img)[0]
         pred = self.nms(pred, conf_thres, iou_thres, None, agnostic_nms, multi_label=multi_label, max_det=max_det)

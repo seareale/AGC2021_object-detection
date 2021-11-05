@@ -17,41 +17,44 @@ from utils.general import *
 
 import odach as oda
 
+TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(), oda.HorizontalFlip(), oda.VerticalFlip(), oda.Multiply(0.9), oda.Multiply(1.1)]
+
 
 if __name__ == "__main__":
     all_t1 = time.time()
 
+
     # 1. Loading
     ######################################################################################
     # load config and hyp
-    weights, source, names, imgsz, conf_thres, iou_thres, max_det, \
-        agnostic_nms, tta, half, fuse = load_hyp('config.yaml')
-    imgsz = [imgsz]*2
+
+    with open('config.yaml') as f:
+        hyp = yaml.safe_load(f)    
+    imgsz = [hyp['imgsz']]*2
 
     # load model
     device = torch.device('cuda:0')
-    ckpt = torch.load(weights[0], map_location=device)
+    ckpt = torch.load(hyp['weights'][0], map_location=device)
     model = ckpt['ema' if ckpt.get('ema') else 'model'].float()
     stride = int(model.stride.max())
-    if fuse:
+    if hyp['fuse']:
         model.fuse()
     model.eval()
-    if half:
+    if hyp['half']:
         model.half()  # to FP16
 
     # load datasets
-    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=False if tta else True)
+    dataset = LoadImages(hyp['path'], img_size=imgsz, stride=stride, auto=False if hyp['tta'] else True)
     ######################################################################################
 
     # run once
     model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters()))) 
 
     # inits for TTA
-    if tta:
-        TTA_AUG = [oda.HorizontalFlip(), oda.Rotate90Left(), oda.Rotate90Right()]  
-        #oda.HorizontalFlip(), oda.VerticalFlip(), oda.Multiply(0.9), oda.Multiply(1.1)]
-        TTA_SCALE = [0.5, 1, 1.3, 1.5]
-        
+    if hyp['tta']:
+        TTA_AUG = [x for i, x in enumerate(TTA_AUG_LIST) if i in hyp['tta-aug']]
+        TTA_SCALE = hyp['tta-scale']
+
         yolov5 = oda.wrap_yolov5(model, non_max_suppression)
         tta_model = oda.TTAWrapper(yolov5, TTA_AUG, TTA_SCALE)
 
@@ -64,23 +67,25 @@ if __name__ == "__main__":
     # inference
     dict_json = {'answer':[]}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
+    box_count = [0, 0, 0, 0]
     for path, img, im0 in tqdm(dataset):
         t1 = time_sync() # start time
 
         # Process img
         img = torch.from_numpy(img).to(device)
-        img = img.half() if half else img.float()  # uint8 to fp16/32
+        img = img.half() if hyp['half'] else img.float()  # uint8 to fp16/32
         img = img / 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
         t2 = time_sync() # img load time
         dt[0] += t2 - t1
 
-        if tta:
+        if hyp['tta']:
             boxes, scores, labels = tta_model(img)
             pred = np.concatenate([boxes,np.array([scores]).T,np.array([labels]).T], axis=1)
 
-            pred = [pred[pred[:,4] > 0.4]]
+            # TTA conf_thres
+            pred = [pred[pred[:,4] > hyp['tta-conf']]]
 
             t3 = t4 = time_sync() # inference time
             dt[1] += t3 - t2
@@ -93,8 +98,7 @@ if __name__ == "__main__":
             dt[1] += t3 - t2
 
             # NMS
-            pred = non_max_suppression(pred, conf_thres, iou_thres, None, agnostic_nms, multi_label=False, max_det=max_det)
-            # pred = non_max_suppression(pred, conf_thres, iou_thres, multi_label=True, max_det=max_det)
+            pred = non_max_suppression(pred, hyp['conf'], hyp['iou'], None, hyp['agnostic-nms'], multi_label=False, max_det=hyp['max_det'])
             t4 = time_sync() # NMS time
             dt[2] += t4 - t3
         
@@ -109,21 +113,32 @@ if __name__ == "__main__":
         for i, det in enumerate(pred):  # per image (= per one TTA)
             seen += 1
 
-            if not tta:
-                # Rescale boxes from img_size to im0 size
-                if len(det):
-                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+            # Rescale boxes from img_size to im0 size
+            if len(det):
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+
+            # check bboxes 
+            h,w = im0.shape[:2]
+            img_area = h*w
+            bboxes = xyxy2xywh(det[:, :4])
+            for idx, bbox in enumerate(bboxes):
+                box_count[0] += 1
 
                 # Remove outbound bbox
-                bboxes = xyxy2xywh(det[:, :4])
-                for idx, bbox in enumerate(bboxes):
-                    h,w = im0.shape[:2]
-                    if is_outbound(bbox, (w,h),  offset=10):
-                        det[idx, 5] = -1
+                if is_outbound(bbox, (w,h), offset=hyp['outbound']):
+                    box_count[1] += 1
+                    det[idx, 5] = -1
 
-                # TODO: outbound bbox for TTA (1280x1280)
+                obj_area = bbox[2]*bbox[3]
                 # remove oversize bbox
+                if obj_area/img_area > hyp['bbox-over']:
+                    box_count[2] += 1
+                    det[idx, 5] = -1
+
                 # remove undersize bbox
+                if obj_area < (h/hyp['bbox-under'] * w/hyp['bbox-under']):
+                    box_count[3] += 1
+                    det[idx, 5] = -1
 
             # count objects
             for cls_num in det[:,5]:
@@ -135,7 +150,7 @@ if __name__ == "__main__":
         
         # results to dict
         for k,v in dict_count.items():
-            dict_file['result'].append({'label':names[k],'count':v})
+            dict_file['result'].append({'label':hyp['names'][k],'count':v})
         dict_json['answer'].append(dict_file)
 
         t5 = time_sync() # json time
@@ -150,11 +165,13 @@ if __name__ == "__main__":
     # 3. Print results
     ######################################################################################
     t = tuple(x / seen for x in dt)  # speeds per image
-    print(f">> Speed: %.6fs pre-process, %.6fs inference, %.6fs NMS, %.6fs json, %.6fs total per image at shape {(1, 3, *imgsz)}" % (*t, sum(t)))
-    print(f"          %.6fs pre-process, %.6fs inference, %.6fs NMS, %.6fs json, %.6fs total" % (*dt, sum(dt)))
+    # print(f">> Speed : %.6fs pre-process, %.6fs inference, %.6fs NMS, %.6fs json, %.6fs total per image at shape {(1, 3, *imgsz)}" % (*t, sum(t)))
+    # print(f"          %.6fs pre-process, %.6fs inference, %.6fs NMS, %.6fs json, %.6fs total" % (*dt, sum(dt)))
     print(f">> Time : model load - %.6fs" % time_load)
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
+    print(f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]})")
+    print(f"-------------------------------------------------------------------------------------")
 
     # Save results json
     if os.path.exists(f"{SAVE_DIR}/{SAVE_FILE}"):

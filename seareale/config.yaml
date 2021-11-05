@@ -1,6 +1,6 @@
-weights: ['/ssd_2/haejin/yolov5/runs/train/agc2021_s6_1101_a1031_coco-neck-det/weights/best.pt'] 
-# ['/ssd_2/haejin/yolov5/runs/train/agc2021_s6_1101_a1031/weights/best.pt']
-# ['weights/best.pt']
+# weights: ['weights/best.pt']
+weights: ['weights/s6_1031.pt']
+# ['weights/x6_b1028.pt']
 
 # path: '/home/agc2021/dataset/'
 path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
@@ -22,10 +22,18 @@ labels: {
 imgsz: 1280
 conf: 0.6
 iou: 0.8
-max-det: 20
-# 140 # 7 * 20 (class_num * max_object_num) 
+max-det: 140 # 7 * 20 (class_num * max_object_num)
 
-agnostic-nms: True
+tta-conf: 0.4
+# tta-aug-list : [90left, 90right, Hflip, Vflip, Multi0.9, Multi1.1]
+tta-aug: [0,1] # index of tta-aug-list
+tta-scale: [1, 1.3, 1.5]
+
+outbound: 20 # pixel
+bbox-over: 0.3
+bbox-under: 32
+
+agnostic-nms: False
 tta: True
 half: True
 fuse: False

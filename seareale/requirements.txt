@@ -3,3 +3,5 @@ torchvision==0.10.1
 PyYAML==6.0
 opencv-python==4.5.4.58
 Pillow==8.4.0
+tqdm==4.62.3
+numba==0.54.1
