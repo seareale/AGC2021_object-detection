@@ -26,6 +26,6 @@ max-det: 20
 # 140 # 7 * 20 (class_num * max_object_num) 
 
 agnostic-nms: True
-augment: False
+tta: True
 half: True
-fuse: True
+fuse: False

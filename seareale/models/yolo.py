@@ -19,7 +19,7 @@ from models.common import *
 from utils.general import make_divisible, check_anchor_order
 # from utils.plots import feature_visualization
 from utils.torch_utils import fuse_conv_and_bn, initialize_weights, model_info, scale_img, time_sync
-from utils.augments import Transform
+# from utils.augments import Transform
 
 
 try:

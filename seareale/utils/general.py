@@ -54,7 +54,7 @@ def load_hyp(hyp_path):
 
     return hyp['weights'], hyp['path'], hyp['names'], \
         hyp['imgsz'], hyp['conf'], hyp['iou'], hyp['max-det'], \
-        hyp['agnostic-nms'], hyp['augment'], hyp['half'], hyp['fuse']
+        hyp['agnostic-nms'], hyp['tta'], hyp['half'], hyp['fuse']
 
 def clip_coords(boxes, shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
