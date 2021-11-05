@@ -51,8 +51,8 @@ if __name__ == "__main__":
         # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
         # TTA_SCALE = [1, 1.3, 1.5]
         
-        TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
-        TTA_SCALE = [0.5, 1, 1.3]
+        TTA_AUG = [oda.HorizontalFlip(), oda.VerticalFlip(), oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
+        TTA_SCALE = [1, 1.3, 1.5]
 
         # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
         # TTA_SCALE = [1, 1.3, 1.5]
@@ -123,6 +123,8 @@ if __name__ == "__main__":
                     h,w = im0.shape[:2]
                     if is_outbound(bbox, (w,h),  offset=10):
                         det[idx, 5] = -1
+
+                # TODO: outbound bbox for TTA (1280x1280)
 
             # count objects
             for cls_num in det[:,5]:
