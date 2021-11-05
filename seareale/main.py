@@ -52,7 +52,7 @@ if __name__ == "__main__":
         # TTA_SCALE = [1, 1.3, 1.5]
         
         TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
-        TTA_SCALE = [0.5, 0.7, 1]
+        TTA_SCALE = [0.5, 1, 1.3]
 
         # TTA_AUG = [oda.Rotate90Left(), oda.Rotate90Right()]  #, oda.Multiply(0.9), oda.Multiply(1.1)]
         # TTA_SCALE = [1, 1.3, 1.5]
