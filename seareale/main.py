@@ -98,7 +98,7 @@ if __name__ == "__main__":
             dt[1] += t3 - t2
 
             # NMS
-            pred = non_max_suppression(pred, hyp['conf'], hyp['iou'], None, hyp['agnostic-nms'], multi_label=False, max_det=hyp['max_det'])
+            pred = non_max_suppression(pred, hyp['conf'], hyp['iou'], None, hyp['agnostic-nms'], multi_label=False, max_det=hyp['max-det'])
             t4 = time_sync() # NMS time
             dt[2] += t4 - t3
         

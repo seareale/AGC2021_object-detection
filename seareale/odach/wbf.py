@@ -61,25 +61,25 @@ def prefilter_boxes(boxes, scores, labels, weights, thr):
                 warnings.warn('Y2 < Y1 value in box. Swap them.')
                 y1, y2 = y2, y1
             if x1 < 0:
-                warnings.warn('X1 < 0 in box. Set it to 0.')
+                warnings.warn(f'X1 < 0 in box. Set it to 0. [{x1}]')
                 x1 = 0
             # if x1 > 1:
             #     warnings.warn('X1 > 1 in box. Set it to 1. Check that you normalize boxes in [0, 1] range.')
             #     x1 = 1
             if x2 < 0:
-                warnings.warn('X2 < 0 in box. Set it to 0.')
+                warnings.warn(f'X2 < 0 in box. Set it to 0. [{x2}]')
                 x2 = 0
             # if x2 > 1:
             #     warnings.warn('X2 > 1 in box. Set it to 1. Check that you normalize boxes in [0, 1] range.')
             #     x2 = 1
             if y1 < 0:
-                warnings.warn('Y1 < 0 in box. Set it to 0.')
+                warnings.warn(f'Y1 < 0 in box. Set it to 0. [{y1}]')
                 y1 = 0
             # if y1 > 1:
             #     warnings.warn('Y1 > 1 in box. Set it to 1. Check that you normalize boxes in [0, 1] range.')
             #     y1 = 1
             if y2 < 0:
-                warnings.warn('Y2 < 0 in box. Set it to 0.')
+                warnings.warn(f'Y2 < 0 in box. Set it to 0. [{y2}]')
                 y2 = 0
             # if y2 > 1:
             #     warnings.warn('Y2 > 1 in box. Set it to 1. Check that you normalize boxes in [0, 1] range.')

@@ -1,6 +1,5 @@
 # weights: ['weights/best.pt']
-weights: ['weights/s6_1031.pt']
-# ['weights/x6_b1028.pt']
+weights: ['weights/x6_last_neck-det_e6.pt']
 
 # path: '/home/agc2021/dataset/'
 path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
@@ -22,7 +21,8 @@ labels: {
 imgsz: 1280
 conf: 0.6
 iou: 0.8
-max-det: 140 # 7 * 20 (class_num * max_object_num)
+max-det: 30
+# 140 # 7 * 20 (class_num * max_object_num)
 
 tta-conf: 0.4
 # tta-aug-list : [90left, 90right, Hflip, Vflip, Multi0.9, Multi1.1]
