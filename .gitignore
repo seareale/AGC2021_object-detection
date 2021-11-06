@@ -11,3 +11,4 @@ AGC2021_confMat/
 config.yaml
 install.txt
 *.pt
+*.ipynb
