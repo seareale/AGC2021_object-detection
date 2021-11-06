@@ -143,11 +143,13 @@ def get_f1score_2021(mat, include_zero=False):
     recall = []
     f1score = []
     for i in range(gt_max):
+        if sum(mat[i,:]) == 0:
+            continue
         if include_zero and i==0:
             continue 
         tp = mat[i,i]
-        fp = np.sum(mat[i,:]) - tp
-        fn = np.sum(mat[:,i]) - tp
+        fn = np.sum(mat[i,:]) - tp
+        fp = np.sum(mat[:,i]) - tp
 
         p = tp / (tp + fp + 1e-8)
         precision.append(p)
@@ -204,7 +206,7 @@ def plot_confusion_matrix(cm, name, exp_name, target_names=None, cmap=None, norm
     if len(cm) == 0 or (cm.shape[0] == 1 and target_names[1][0] == 0):
         return
     
-    f1score, _ = get_f1score_2021(cm)
+    f1score, _ = get_f1score_2021(cm, include_zero=(target_names[1][0] == 0))
     accuracy = np.trace(cm) / float(np.sum(cm))
     misclass = 1 - accuracy
 
