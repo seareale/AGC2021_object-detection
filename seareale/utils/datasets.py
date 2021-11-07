@@ -20,7 +20,8 @@ class LoadImages:  # for inference
                 raise Exception(f'{p} is not directory')
         images = sorted([x for x in files if x.split('.')[-1].lower() in IMG_FORMATS])
 
-        # images *= 5
+        # for same # of AGC2021
+        # images *= 8
         print('>> # of images :', len(images))
         
         ni = len(images)

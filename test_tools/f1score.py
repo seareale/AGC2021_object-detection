@@ -165,6 +165,7 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False):
     macro_f1 = 0
     all_f1_list = []
     conf_mat_list = []
+    target_names = []
 
     print(f"\n>> Macro F1 score {'- include zero' if include_zero else ''}")
     print('------------------------')
@@ -183,10 +184,11 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False):
             macro_f1 += f1
             print("{:9s} : {:0.4f}".format(LABELS_NAME[i], f1))
             all_f1_list.append(result)
+            target_names.append(i)
     print('------------------------')
     print("{:9s} : {:0.4f}".format('TOTAL', macro_f1/len(all_f1_list)))
 
-    return macro_f1/len(all_f1_list), all_f1_list, conf_mat_list
+    return macro_f1/len(all_f1_list), all_f1_list, conf_mat_list, target_names
 
 def show_confMat(conf_mat_list, exp_name):
     conf_list = []
@@ -254,17 +256,17 @@ def plot_confusion_matrix(cm, name, exp_name, target_names=None, cmap=None, norm
 
     return fig
 
-def plot_f1score(f1_list, exp_name, cmap=None, title='2021AGC F1 score'):
+def plot_f1score(f1_list, exp_name, target_names, cmap=None, title='2021AGC F1 score'):
     f1_list = np.array([[f1 for f1, f1l in f1_list]])
-    macrof1 = np.sum(f1_list)/len(f1_list)
-    target_names = list(LABELS_NAME.values())
+    macrof1 = np.sum(f1_list)/len(f1_list[0])
+    target_names = [LABELS_NAME[i] for i in target_names]
     if 'zero' in exp_name:
         title = '2021AGC F1 score - GT,Pred 0 case'
 
     if cmap is None:
         cmap = plt.get_cmap('Blues')
 
-    fig = plt.figure(figsize=(10, 3), facecolor='w')
+    fig = plt.figure(figsize=(10, 5), facecolor='w')
     plt.imshow(f1_list, interpolation='nearest', vmin=0, vmax=1, cmap=cmap)
     plt.title(title)
 
