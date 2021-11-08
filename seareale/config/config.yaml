@@ -2,8 +2,8 @@ weights: ['weights/x6_last_neck-det_e24.pt']
 
 # path: '/home/agc2021/dataset/'
 path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
-        # '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
-        '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
+        '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
+        # '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
         # '/ssd_2/RecycleTrash/yolo/images/test_211103_400'
       ]
 names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
@@ -24,8 +24,12 @@ max-det: 30
 # 140 # 7 * 20 (class_num * max_object_num)
 
 tta-conf: 0.4
-# tta-aug-list : [90left, 90right, Hflip, Vflip, Multi0.9, Multi1.1]
-tta-aug: [0,1] # index of tta-aug-list
+# TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(),
+#                 oda.HorizontalFlip(), oda.VerticalFlip(),
+#                 oda.Multiply(0.9), oda.Multiply(1.1),
+#                 oda.RandColorJitter(),
+#                 oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
+tta-aug: [0,1,6] # index of tta-aug-list
 tta-scale: [1, 1.3, 1.5]
 
 outbound: 20 # pixel
