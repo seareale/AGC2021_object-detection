@@ -66,9 +66,10 @@ class Blur(Base):
     def augment(self, image):
         return self.blur(image=image)["image"]
 
-    @albumentations
     def batch_augment(self, images):
-        return self.blur(image=images)["image"]
+        images = [self.augment(image) for image in images]
+        images = torch.stack(images, axis=0)
+        return images
 
     def deaugment_boxes(self, boxes):
         return boxes
@@ -82,9 +83,10 @@ class MotionBlur(Base):
     def augment(self, image):
         return self.motionblur(image=image)["image"]
 
-    @albumentations
     def batch_augment(self, images):
-        return self.motionblur(image=images)["image"]
+        images = [self.augment(image) for image in images]
+        images = torch.stack(images, axis=0)
+        return images
 
     def deaugment_boxes(self, boxes):
         return boxes
@@ -98,9 +100,10 @@ class MedianBlur(Base):
     def augment(self, image):
         return self.medianblur(image=image)["image"]
 
-    @albumentations
     def batch_augment(self, images):
-        return self.medianblur(image=images)["image"]
+        images = [self.augment(image) for image in images]
+        images = torch.stack(images, axis=0)
+        return images
 
     def deaugment_boxes(self, boxes):
         return boxes
