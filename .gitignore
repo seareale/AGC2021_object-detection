@@ -8,7 +8,6 @@ __pycache__/
 AGC2021_confMat/
 
 # file
-config.yaml
 install.txt
 *.pt
 *.ipynb

@@ -1,0 +1,38 @@
+weights: ['weights/x6_last_neck-det_e24.pt']
+
+# path: '/home/agc2021/dataset/'
+path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
+        # '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
+        '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
+        # '/ssd_2/RecycleTrash/yolo/images/test_211103_400'
+      ]
+names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
+labels: {
+  'paper': 'c_1',
+  'paperpack': 'c_2',
+  'can': 'c_3',
+  'glass': 'c_4',
+  'pet': 'c_5',
+  'plastic': 'c_6',
+  'vinyl': 'c_7'
+}
+
+imgsz: 1280
+conf: 0.6
+iou: 0.8
+max-det: 30
+# 140 # 7 * 20 (class_num * max_object_num)
+
+tta-conf: 0.4
+# tta-aug-list : [90left, 90right, Hflip, Vflip, Multi0.9, Multi1.1]
+tta-aug: [0,1] # index of tta-aug-list
+tta-scale: [1, 1.3, 1.5]
+
+outbound: 20 # pixel
+bbox-over: 0.3
+bbox-under: 32
+
+agnostic-nms: False
+tta: True
+half: True
+fuse: False
