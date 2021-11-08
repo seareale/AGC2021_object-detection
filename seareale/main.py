@@ -17,8 +17,12 @@ from utils.general import *
 
 import odach as oda
 
-TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(), oda.HorizontalFlip(), oda.VerticalFlip(), oda.Multiply(0.9), oda.Multiply(1.1)]
 
+TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(),
+                oda.HorizontalFlip(), oda.VerticalFlip(),
+                oda.Multiply(0.9), oda.Multiply(1.1),
+                oda.RandColorJitter(),
+                oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
 
 if __name__ == "__main__":
     all_t1 = time.time()
