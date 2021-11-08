@@ -21,7 +21,7 @@ class LoadImages:  # for inference
         images = sorted([x for x in files if x.split('.')[-1].lower() in IMG_FORMATS])
 
         # for same # of AGC2021
-        # images *= 8
+        # images *= 200
         print('>> # of images :', len(images))
         
         ni = len(images)
