@@ -4,11 +4,12 @@ from pathlib import Path
 import cv2
 from PIL import Image
 import numpy as np
+from torch.utils.data import Dataset
 
 
 IMG_FORMATS = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 
-class LoadImages:  # for inference
+class LoadImages(Dataset):  # for inference
     def __init__(self, path, img_size=640, stride=32, auto=True):
 
         files = []
@@ -35,17 +36,10 @@ class LoadImages:  # for inference
         assert self.nf > 0, f'No images found in {p}. ' \
                             f'Supported formats are:\nimages: {IMG_FORMATS}\n'
 
-    def __iter__(self):
-        self.count = 0
-        return self
-
-    def __next__(self):
-        if self.count == self.nf:
-            raise StopIteration
-        path = self.files[self.count]
+    def __getitem__(self, index):
+        path = self.files[index]
 
         # Read image
-        self.count += 1
         img0 = cv2.imread(path)  # BGR
         assert img0 is not None, 'Image Not Found ' + path
         # print(f'image {self.count}/{self.nf} {path}: ', end='')
@@ -57,7 +51,7 @@ class LoadImages:  # for inference
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
-        return path, img, img0
+        return path, img, np.array(img0.shape).T
 
     def __len__(self):
         return self.nf  # number of files

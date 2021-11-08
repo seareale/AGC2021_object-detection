@@ -50,6 +50,10 @@ if __name__ == "__main__":
     dataset = LoadImages(
         hyp["path"], img_size=imgsz, stride=stride, auto=False if hyp["tta"] else True
     )
+    loader = torch.utils.data.DataLoader
+    dataloader = loader(dataset,
+                        batch_size=hyp["batchsz"],
+                        num_workers=hyp["numworker"])
     ######################################################################################
 
     # run once
@@ -74,11 +78,11 @@ if __name__ == "__main__":
     dict_json = {"answer": []}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     box_count = [0, 0, 0, 0]
-    for path, img, im0 in tqdm(dataset):
+    for path, img, im0 in tqdm(dataloader):
         t1 = time_sync()  # start time
 
         # Process img
-        img = torch.from_numpy(img).to(device)
+        img = torch.from_numpy(np.asarray(img)).to(device)
         img = img / 255.0  # 0 - 255 to 0.0 - 1.0
         if len(img.shape) == 3:
             img = img[None]  # expand for batch dim
@@ -87,10 +91,15 @@ if __name__ == "__main__":
 
         if hyp["tta"]:
             boxes, scores, labels = tta_model(img)
-            pred = np.concatenate([boxes, np.array([scores]).T, np.array([labels]).T], axis=1)
 
-            # TTA conf_thres
-            pred = [pred[pred[:, 4] > hyp["tta-conf"]]]
+            pred = []
+            for b, s, l in zip(boxes, scores, labels):
+                p = np.concatenate([b, np.array([s]).T, np.array([l]).T], axis=1)
+                
+                # TTA conf_thres
+                p = p[p[:, 4] > hyp["tta-conf"]]
+                
+                pred.append(p)
 
             t3 = t4 = time_sync()  # inference time
             dt[1] += t3 - t2
@@ -116,19 +125,20 @@ if __name__ == "__main__":
             t4 = time_sync()  # NMS time
             dt[2] += t4 - t3
 
-        # create json for results
-        dict_file = {"file_name": f"{path.split('/')[-1]}", "result": []}
-        dict_count = {}
-
-        for i, det in enumerate(pred):  # per image (= per one TTA)
+        for i, (p,im,im_0,det) in enumerate(zip(path, img, im0, pred)):  # per image (= per one TTA)
             seen += 1
+            
+            # create json for results
+            dict_file = {"file_name": f"{p.split('/')[-1]}", "result": []}
+            dict_count = {}
 
             # Rescale boxes from img_size to im0 size
-            if len(det):
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+            if det.shape[0]:
+                det[:, :4] = scale_coords(im.shape[1:], det[:, :4], im_0.numpy()).round()
+
 
             # check bboxes
-            h, w = im0.shape[:2]
+            h, w = im_0[:2]
             img_area = h * w
             bboxes = xyxy2xywh(det[:, :4])
             for idx, bbox in enumerate(bboxes):
@@ -158,10 +168,10 @@ if __name__ == "__main__":
                 else:
                     dict_count[cls_num] += 1
 
-        # results to dict
-        for k, v in dict_count.items():
-            dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
-        dict_json["answer"].append(dict_file)
+            # results to dict
+            for k, v in dict_count.items():
+                dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
+            dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time
         dt[3] += t5 - t4

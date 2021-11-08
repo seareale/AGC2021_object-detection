@@ -1,9 +1,9 @@
-weights: ['weights/s6_last_coco-neck-det_e26.pt']
+weights: ['weights/s6_1031_all.pt']
 
 # path: '/home/agc2021/dataset/'
 path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',
-        '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
-        # '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
+        # '/ssd_2/RecycleTrash/yolo/images/test_2021AGC_30',
+        '/ssd_2/RecycleTrash/yolo/images/test_211026_405',
         # '/ssd_2/RecycleTrash/yolo/images/test_211103_400'
       ]
 names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
@@ -18,6 +18,8 @@ labels: {
 }
 
 imgsz: 1280
+batchsz: 4
+numworker: 4
 conf: 0.6
 iou: 0.8
 max-det: 30
@@ -29,8 +31,10 @@ tta-conf: 0.4
 #                 oda.Multiply(0.9), oda.Multiply(1.1),
 #                 oda.RandColorJitter(),
 #                 oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
-tta-aug: [0,1] # index of tta-aug-list
-tta-scale: [1, 1.3, 1.5]
+# tta-aug: [0,1] # index of tta-aug-list
+# tta-scale: [1, 1.3, 1.5]
+tta-aug: [] # index of tta-aug-list
+tta-scale: [1]
 
 outbound: 20 # pixel
 bbox-over: 0.3

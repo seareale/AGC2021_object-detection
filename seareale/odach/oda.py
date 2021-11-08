@@ -374,9 +374,10 @@ class TTAWrapper:
 
     # TODO: change to call
     def __call__(self, img):
-        boxes = []
-        scores = []
-        labels = []
+        b_boxes = {}
+        b_scores = {}
+        b_labels = {}
+        
         # TTA loop
         for tta in self.ttas:
             # gen img
@@ -385,24 +386,27 @@ class TTAWrapper:
                 inf_img = inf_img.half()
             results = self.model_inference(inf_img.to(self.device))
             # iter for batch
-            for result in results:
-                box = result["boxes"].cpu().numpy()
-                box = tta.deaugment_boxes(box)
-                # scale box to 0-1
-                # if np.max(box, initial=1)>1:
-                #     box[:,0] /= img.shape[3]
-                #     box[:,2] /= img.shape[3]
-                #     box[:,1] /= img.shape[2]
-                #     box[:,3] /= img.shape[2]
-
+            
+            for idx, result in enumerate(results):
+                if idx not in b_boxes.keys():
+                    b_boxes[idx] = []
+                    b_scores[idx] = []
+                    b_labels[idx] = []
+                
+                boxes = result["boxes"].cpu().numpy()
+                boxes = tta.deaugment_boxes(boxes)
+                
                 thresh = 0.01
                 ind = result["scores"].cpu().numpy() > thresh
-                boxes.append(box[ind])
-                scores.append(result["scores"].cpu().numpy()[ind])
-                labels.append(result["labels"].cpu().numpy()[ind])
 
-        boxes, scores, labels = self.nms(boxes, scores, labels)
-        return boxes, scores, labels
+                b_boxes[idx].append(boxes[ind])
+                b_scores[idx].append(result["scores"].cpu().numpy()[ind])
+                b_labels[idx].append(result["labels"].cpu().numpy()[ind])
+
+        for img in b_boxes.keys():
+            b_boxes[img], b_scores[img], b_labels[img] = self.nms(b_boxes[img], b_scores[img], b_labels[img])
+
+        return list(b_boxes.values()), list(b_scores.values()), list(b_labels.values())
 
 
 # for use in EfficientDets
@@ -454,9 +458,9 @@ class wrap_yolov5:
         self, img, conf_thres=0.2, iou_thres=0.6, agnostic_nms=False, multi_label=True, max_det=140
     ):
         # inference
-        pred = self.model(img)[0]
-        pred = self.nms(
-            pred,
+        batch = self.model(img)[0]
+        batch = self.nms(
+            batch,
             conf_thres,
             iou_thres,
             None,
@@ -466,7 +470,8 @@ class wrap_yolov5:
         )
 
         predictions = []
-        for i, det in enumerate(pred):
-            predictions.append({"boxes": det[:, :4], "scores": det[:, 4], "labels": det[:, 5]})
+        
+        for pred in batch:
+            predictions.append({"boxes": pred[:, :4], "scores": pred[:, 4], "labels": pred[:, 5]})
 
         return predictions
