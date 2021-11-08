@@ -32,10 +32,13 @@ LABELS = {
 CLASS_NUM = len(LABELS_NAME.keys())
 
 
-def get_true_annotation(config):
-    with open(config) as f:
-        hyp = yaml.safe_load(f)
-    path = hyp['path']
+def get_true_annotation(config, one_path=None):
+    if one_path == None:
+        with open(config) as f:
+            hyp = yaml.safe_load(f)
+        path = hyp['path']
+    else :
+        path = one_path
 
     files = []
     for p in path if isinstance(path, list) else [path]:
