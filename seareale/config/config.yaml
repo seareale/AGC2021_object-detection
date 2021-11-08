@@ -1,7 +1,4 @@
-# weights: ['weights/best.pt']
-weights: ['weights/s6_last_neck-det_e5.pt']
-# ['weights/s6_1031_neck-det.pt']
-# ['weights/x6_last_neck-det_e24.pt']
+weights: ['weights/x6_last_neck-det_e24.pt']
 
 # path: '/home/agc2021/dataset/'
 path: [ # '/ssd_2/RecycleTrash/yolo/images/test_2020AGC_452',

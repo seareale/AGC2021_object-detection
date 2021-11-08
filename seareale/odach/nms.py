@@ -1,6 +1,4 @@
 # coding: utf-8
-__author__ = 'ZFTurbo: https://kaggle.com/zfturbo'
-
 import numpy as np
 from numba import jit
 
@@ -39,18 +37,6 @@ def prepare_boxes(boxes, scores, labels):
 
 
 def cpu_soft_nms_float(dets, sc, Nt, sigma, thresh, method):
-    """
-    Based on: https://github.com/DocF/Soft-NMS/blob/master/soft_nms.py
-    It's different from original soft-NMS because we have float coordinates on range [0; 1]
-    :param dets:   boxes format [x1, y1, x2, y2]
-    :param sc:     scores for boxes
-    :param Nt:     required iou 
-    :param sigma:  
-    :param thresh: 
-    :param method: 1 - linear soft-NMS, 2 - gaussian soft-NMS, 3 - standard NMS
-    :return: index of boxes to keep
-    """
-
     # indexes concatenate boxes with the last column
     N = dets.shape[0]
     indexes = np.array([np.arange(N)])

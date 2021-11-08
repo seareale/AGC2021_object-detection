@@ -28,13 +28,13 @@ if __name__ == "__main__":
     ######################################################################################
     # load config and hyp
 
-    with open('config.yaml') as f:
+    with open(f"{SAVE_DIR}/config/config.yaml") as f:
         hyp = yaml.safe_load(f)    
     imgsz = [hyp['imgsz']]*2
 
     # load model
     device = torch.device('cuda:0')
-    ckpt = torch.load(hyp['weights'][0], map_location=device)
+    ckpt = torch.load(f"{SAVE_DIR}/{hyp['weights'][0]}", map_location=device)
     model = ckpt['ema' if ckpt.get('ema') else 'model'].float()
     stride = int(model.stride.max())
     if hyp['fuse']:
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         
         # results to dict
         for k,v in dict_count.items():
-            dict_file['result'].append({'label':hyp['names'][k],'count':v})
+            dict_file['result'].append({'label':hyp['names'][k],'count':str(v)})
         dict_json['answer'].append(dict_file)
 
         t5 = time_sync() # json time
