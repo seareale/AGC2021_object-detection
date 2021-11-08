@@ -315,13 +315,24 @@ class TTAWrapper:
     """
 
     def __init__(
-        self, model, tta, scale=[1], nms="wbf", iou_thr=0.5, skip_box_thr=0.5, weights=None
+        self,
+        model,
+        tta,
+        scale=[1],
+        nms="wbf",
+        iou_thr=0.5,
+        skip_box_thr=0.5,
+        weights=None,
+        device=torch.device("cpu"),
+        half_flag=False,
     ):
         self.ttas = self.generate_TTA(tta, scale)
         self.model = model  # .eval()
         # set nms function
         # default is weighted box fusion.
         self.nms = nms_func(nms, weights, iou_thr, skip_box_thr)
+        self.device = device
+        self.half_flag = half_flag
 
     def generate_TTA(self, tta, scale):
         from itertools import product
@@ -367,7 +378,9 @@ class TTAWrapper:
         for tta in self.ttas:
             # gen img
             inf_img = tta.batch_augment(img.clone())
-            results = self.model_inference(inf_img)
+            if self.half_flag:
+                inf_img = inf_img.half()
+            results = self.model_inference(inf_img.to(self.device))
             # iter for batch
             for result in results:
                 box = result["boxes"].cpu().numpy()
