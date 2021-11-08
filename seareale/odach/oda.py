@@ -1,7 +1,5 @@
 # Written by @kentaroy47
 
-# based on https://github.com/qubvel/ttach, https://github.com/andrewekhalel/edafa/tree/master/edafa and https://www.kaggle.com/shonenkov/wbf-over-tta-single-model-efficientdet
-
 import torch
 import torch.nn.functional as F
 import numpy as np

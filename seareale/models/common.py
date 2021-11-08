@@ -38,7 +38,6 @@ class DWConv(Conv):
 
 
 class TransformerLayer(nn.Module):
-    # Transformer layer https://arxiv.org/abs/2010.11929 (LayerNorm layers removed for better performance)
     def __init__(self, c, num_heads):
         super().__init__()
         self.q = nn.Linear(c, c, bias=False)
@@ -55,7 +54,6 @@ class TransformerLayer(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    # Vision Transformer https://arxiv.org/abs/2010.11929
     def __init__(self, c1, c2, num_heads, num_layers):
         super().__init__()
         self.conv = None
@@ -87,7 +85,6 @@ class Bottleneck(nn.Module):
 
 
 class BottleneckCSP(nn.Module):
-    # CSP Bottleneck https://github.com/WongKinYiu/CrossStagePartialNetworks
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
@@ -145,7 +142,6 @@ class C3Ghost(C3):
 
 
 class SPP(nn.Module):
-    # Spatial Pyramid Pooling (SPP) layer https://arxiv.org/abs/1406.4729
     def __init__(self, c1, c2, k=(5, 9, 13)):
         super().__init__()
         c_ = c1 // 2  # hidden channels
@@ -191,7 +187,6 @@ class Focus(nn.Module):
 
 
 class GhostConv(nn.Module):
-    # Ghost Convolution https://github.com/huawei-noah/ghostnet
     def __init__(self, c1, c2, k=1, s=1, g=1, act=True):  # ch_in, ch_out, kernel, stride, groups
         super().__init__()
         c_ = c2 // 2  # hidden channels
@@ -204,7 +199,6 @@ class GhostConv(nn.Module):
 
 
 class GhostBottleneck(nn.Module):
-    # Ghost Bottleneck https://github.com/huawei-noah/ghostnet
     def __init__(self, c1, c2, k=3, s=1):  # ch_in, ch_out, kernel, stride
         super().__init__()
         c_ = c2 // 2

@@ -4,11 +4,8 @@ PyTorch utils
 """
 
 import datetime
-# import logging
 import math
 import os
-# import platform
-import subprocess
 import time
 from contextlib import contextmanager
 from copy import deepcopy
@@ -42,7 +39,6 @@ def torch_distributed_zero_first(local_rank: int):
 
 
 def init_torch_seeds(seed=0):
-    # Speed-reproducibility tradeoff https://pytorch.org/docs/stable/notes/randomness.html
     torch.manual_seed(seed)
     if seed == 0:  # slower, more reproducible
         cudnn.benchmark, cudnn.deterministic = False, True
@@ -56,25 +52,17 @@ def date_modified(path=__file__):
     return f'{t.year}-{t.month}-{t.day}'
 
 
-def git_describe(path=Path(__file__).parent):  # path must be a directory
-    # return human-readable git description, i.e. v5.0-5-g3e25f1e https://git-scm.com/docs/git-describe
-    s = f'git -C {path} describe --tags --long --always'
-    try:
-        return subprocess.check_output(s, shell=True, stderr=subprocess.STDOUT).decode()[:-1]
-    except subprocess.CalledProcessError as e:
-        return ''  # not a git repository
-
-
 def select_device(device='', batch_size=None):
     # device = 'cpu' or '0' or '0,1,2,3'
-    s = f'YOLOv5 🚀 {git_describe() or date_modified()} torch {torch.__version__} '  # string
+    s = f'YOLOv5 🚀 {date_modified()} torch {torch.__version__} '  # string
     device = str(device).strip().lower().replace('cuda:', '')  # to string, 'cuda:0' to '0'
     cpu = device == 'cpu'
     if cpu:
+        pass
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # force torch.cuda.is_available() = False
-    elif device:  # non-cpu device requested
+    elif device:  # non-cpu device
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
-        assert torch.cuda.is_available(), f'CUDA unavailable, invalid device {device} requested'  # check availability
+        assert torch.cuda.is_available(), f'CUDA unavailable, invalid device {device}'  # check availability
 
     cuda = not cpu and torch.cuda.is_available()
     if cuda:
@@ -195,7 +183,7 @@ def sparsity(model):
 
 
 def prune(model, amount=0.3):
-    # Prune model to requested global sparsity
+    # Prune model to global sparsity
     import torch.nn.utils.prune as prune
     print('Pruning model... ', end='')
     for name, m in model.named_modules():
@@ -206,7 +194,6 @@ def prune(model, amount=0.3):
 
 
 def fuse_conv_and_bn(conv, bn):
-    # Fuse convolution and batchnorm layers https://tehnokv.com/posts/fusing-batchnorm-and-conv/
     fusedconv = nn.Conv2d(conv.in_channels,
                           conv.out_channels,
                           kernel_size=conv.kernel_size,
@@ -315,15 +302,6 @@ class EarlyStopping:
 
 
 class ModelEMA:
-    """ Model Exponential Moving Average from https://github.com/rwightman/pytorch-image-models
-    Keep a moving average of everything in the model state_dict (parameters and buffers).
-    This is intended to allow functionality like
-    https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
-    A smoothed version of the weights is necessary for some training schemes to perform well.
-    This class is sensitive where it is initialized in the sequence of model init,
-    GPU assignment and distributed training wrappers.
-    """
-
     def __init__(self, model, decay=0.9999, updates=0):
         # Create EMA
         self.ema = deepcopy(model.module if is_parallel(model) else model).eval()  # FP32 EMA

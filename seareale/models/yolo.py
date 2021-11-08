@@ -6,8 +6,6 @@ Usage:
     $ python path/to/models/yolo.py --cfg yolov5s.yaml
 """
 
-# import logging
-# import argparse
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -17,17 +15,13 @@ sys.path.append(FILE.parents[1].as_posix())  # add yolov5/ to path
 
 from models.common import *
 from utils.general import make_divisible, check_anchor_order
-# from utils.plots import feature_visualization
 from utils.torch_utils import fuse_conv_and_bn, initialize_weights, model_info, scale_img, time_sync
-# from utils.augments import Transform
 
 
 try:
-    import thop  # for FLOPs computation
+    import thop
 except ImportError:
     thop = None
-
-# LOGGER = logging.getLogger(__name__)
 
 class Detect(nn.Module):
     stride = None  # strides computed during build
@@ -61,7 +55,7 @@ class Detect(nn.Module):
                 if self.inplace:
                     y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
                     y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
-                else:  # for YOLOv5 on AWS Inferentia https://github.com/ultralytics/yolov5/pull/2953
+                else:
                     xy = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy
                     wh = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i].view(1, self.na, 1, 1, 2)  # wh
                     y = torch.cat((xy, wh, y[..., 4:]), -1)
@@ -187,7 +181,6 @@ class Model(nn.Module):
         return p
 
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
-        # https://arxiv.org/abs/1708.02002 section 3.3
         # cf = torch.bincount(torch.tensor(np.concatenate(dataset.labels, 0)[:, 0]).long(), minlength=nc) + 1.
         m = self.model[-1]  # Detect() module
         for mi, s in zip(m.m, m.stride):  # from
@@ -274,29 +267,3 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
             ch = []
         ch.append(c2)
     return nn.Sequential(*layers), sorted(save)
-
-
-# if __name__ == '__main__':
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
-#     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-#     parser.add_argument('--profile', action='store_true', help='profile model speed')
-#     opt = parser.parse_args()
-#     opt.cfg = check_yaml(opt.cfg)  # check YAML
-#     set_logging()
-#     device = select_device(opt.device)
-
-#     # Create model
-#     model = Model(opt.cfg).to(device)
-#     model.train()
-
-#     # Profile
-#     if opt.profile:
-#         img = torch.rand(8 if torch.cuda.is_available() else 1, 3, 640, 640).to(device)
-#         y = model(img, profile=True)
-
-#     # Tensorboard (not working https://github.com/ultralytics/yolov5/issues/2898)
-#     # from torch.utils.tensorboard import SummaryWriter
-#     # tb_writer = SummaryWriter('.')
-#     # LOGGER.info("Run 'tensorboard --logdir=models' to view tensorboard at http://localhost:6006/")
-#     # tb_writer.add_graph(torch.jit.trace(model, img, strict=False), [])  # add model graph

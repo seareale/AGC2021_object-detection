@@ -95,13 +95,6 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleF
     return im, ratio, (dw, dh)
 
 def exif_transpose(image):
-    """
-    Transpose a PIL image accordingly if it has an EXIF Orientation tag.
-    From https://github.com/python-pillow/Pillow/blob/master/src/PIL/ImageOps.py
-
-    :param image: The image to transpose.
-    :return: An image.
-    """
     exif = image.getexif()
     orientation = exif.get(0x0112, 1)  # default 1
     if orientation > 1:

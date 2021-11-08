@@ -1,6 +1,4 @@
 # coding: utf-8
-__author__ = 'ZFTurbo: https://kaggle.com/zfturbo'
-
 
 import warnings
 import numpy as np

@@ -68,7 +68,7 @@ def get_pred_annotation(results_json):
     for file in data['answer']:
         file_count = {}
         for cls_count in file['result']:
-            file_count[LABELS[cls_count['label']]] = cls_count['count']
+            file_count[LABELS[cls_count['label']]] = int(cls_count['count'])
         pred_class_dict[file['file_name'][:-4]] = file_count
 
     return pred_class_dict
