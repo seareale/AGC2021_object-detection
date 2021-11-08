@@ -11,3 +11,7 @@ AGC2021_confMat/
 install.txt
 *.pt
 *.ipynb
+
+# data
+*.txt
+*.jpg
