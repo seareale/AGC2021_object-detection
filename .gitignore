@@ -6,6 +6,7 @@ __pycache__/
 # log
 *.json
 AGC2021_confMat/
+archive/
 
 # file
 install.txt
