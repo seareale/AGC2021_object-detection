@@ -12,3 +12,7 @@ config.yaml
 install.txt
 *.pt
 *.ipynb
+
+# data
+*.txt
+*.jpg
