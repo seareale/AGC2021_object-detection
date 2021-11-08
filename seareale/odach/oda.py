@@ -2,10 +2,33 @@
 
 # based on https://github.com/qubvel/ttach, https://github.com/andrewekhalel/edafa/tree/master/edafa and https://www.kaggle.com/shonenkov/wbf-over-tta-single-model-efficientdet
 
+import albumentations.augmentations.transforms as A
 import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
+from einops import asnumpy, rearrange
+
+
+def albumentations(func):
+    """
+    For albumentations, conver torch tensor (c h w) to numpy (h w c)
+    """
+
+    def new_func(*args, **kwargs):
+        new_args = []
+        for arg in args:
+            if isinstance(arg, torch.Tensor):
+                device = torch.device(arg.device)
+                new_arg = rearrange(asnumpy(arg), "... c h w -> ... h w c")
+                new_args.append(new_arg)
+            else:
+                new_args.append(arg)
+        output = func(*new_args, **kwargs)
+        output = rearrange(output, "... h w c -> ... c h w")
+        return torch.tensor(output).to(device)
+
+    return new_func
 
 
 class Base:
@@ -32,6 +55,54 @@ class RandColorJitter(Base):
 
     def batch_augment(self, images):
         return self.jitter(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class Blur(Base):
+    def __init__(self, blur_limit=7) -> None:
+        self.blur = A.Blur(blur_limit=blur_limit, p=1)
+
+    @albumentations
+    def augment(self, image):
+        return self.blur(image=image)["image"]
+
+    @albumentations
+    def batch_augment(self, images):
+        return self.blur(image=images)["image"]
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class MotionBlur(Base):
+    def __init__(self, blur_limit=7) -> None:
+        self.motionblur = A.MotionBlur(blur_limit=blur_limit, p=1)
+
+    @albumentations
+    def augment(self, image):
+        return self.motionblur(image=image)["image"]
+
+    @albumentations
+    def batch_augment(self, images):
+        return self.motionblur(image=images)["image"]
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class MedianBlur(Base):
+    def __init__(self, blur_limit=7) -> None:
+        self.medianblur = A.MedianBlur(blur_limit=blur_limit, p=1)
+
+    @albumentations
+    def augment(self, image):
+        return self.medianblur(image=image)["image"]
+
+    @albumentations
+    def batch_augment(self, images):
+        return self.medianblur(image=images)["image"]
 
     def deaugment_boxes(self, boxes):
         return boxes
