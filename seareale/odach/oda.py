@@ -1,5 +1,7 @@
 # Written by @kentaroy47
 
+from collections import defaultdict
+
 import albumentations.augmentations.transforms as A
 import numpy as np
 import torch
@@ -374,10 +376,10 @@ class TTAWrapper:
 
     # TODO: change to call
     def __call__(self, img):
-        b_boxes = {}
-        b_scores = {}
-        b_labels = {}
-        
+        b_boxes = defaultdict(list)
+        b_scores = defaultdict(list)
+        b_labels = defaultdict(list)
+
         # TTA loop
         for tta in self.ttas:
             # gen img
@@ -386,16 +388,11 @@ class TTAWrapper:
                 inf_img = inf_img.half()
             results = self.model_inference(inf_img.to(self.device))
             # iter for batch
-            
+
             for idx, result in enumerate(results):
-                if idx not in b_boxes.keys():
-                    b_boxes[idx] = []
-                    b_scores[idx] = []
-                    b_labels[idx] = []
-                
                 boxes = result["boxes"].cpu().numpy()
                 boxes = tta.deaugment_boxes(boxes)
-                
+
                 thresh = 0.01
                 ind = result["scores"].cpu().numpy() > thresh
 
@@ -404,7 +401,9 @@ class TTAWrapper:
                 b_labels[idx].append(result["labels"].cpu().numpy()[ind])
 
         for img in b_boxes.keys():
-            b_boxes[img], b_scores[img], b_labels[img] = self.nms(b_boxes[img], b_scores[img], b_labels[img])
+            b_boxes[img], b_scores[img], b_labels[img] = self.nms(
+                b_boxes[img], b_scores[img], b_labels[img]
+            )
 
         return list(b_boxes.values()), list(b_scores.values()), list(b_labels.values())
 
@@ -470,7 +469,7 @@ class wrap_yolov5:
         )
 
         predictions = []
-        
+
         for pred in batch:
             predictions.append({"boxes": pred[:, :4], "scores": pred[:, 4], "labels": pred[:, 5]})
 
