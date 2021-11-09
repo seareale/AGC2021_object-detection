@@ -1,4 +1,5 @@
 # cache
+.history/
 .lh/
 .vscode/
 __pycache__/
