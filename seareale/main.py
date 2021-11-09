@@ -17,12 +17,18 @@ import odach as oda
 from utils.datasets import LoadImages
 from utils.general import *
 
-
-TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(),
-                oda.HorizontalFlip(), oda.VerticalFlip(),
-                oda.Multiply(0.9), oda.Multiply(1.1),
-                oda.RandColorJitter(),
-                oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
+TTA_AUG_LIST = [
+    oda.Rotate90Left(),
+    oda.Rotate90Right(),
+    oda.HorizontalFlip(),
+    oda.VerticalFlip(),
+    oda.Multiply(0.9),
+    oda.Multiply(1.1),
+    oda.RandColorJitter(),
+    oda.Blur(),
+    oda.MotionBlur(),
+    oda.MedianBlur(),
+]
 
 if __name__ == "__main__":
     all_t1 = time.time()
@@ -48,12 +54,10 @@ if __name__ == "__main__":
 
     # load datasets
     dataset = LoadImages(
-        hyp["path"], img_size=imgsz, stride=stride, auto=False # if hyp["tta"] else True
+        hyp["path"], img_size=imgsz, stride=stride, auto=False  # if hyp["tta"] else True
     )
     loader = torch.utils.data.DataLoader
-    dataloader = loader(dataset,
-                        batch_size=hyp["batchsz"],
-                        num_workers=hyp["numworker"])
+    dataloader = loader(dataset, batch_size=hyp["batchsz"], num_workers=hyp["numworker"])
     ######################################################################################
 
     # run once
@@ -95,10 +99,10 @@ if __name__ == "__main__":
             pred = []
             for b, s, l in zip(boxes, scores, labels):
                 p = np.concatenate([b, np.array([s]).T, np.array([l]).T], axis=1)
-                
+
                 # TTA conf_thres
                 p = p[p[:, 4] > hyp["tta-conf"]]
-                
+
                 pred.append(p)
 
             t3 = t4 = time_sync()  # inference time
@@ -125,9 +129,11 @@ if __name__ == "__main__":
             t4 = time_sync()  # NMS time
             dt[2] += t4 - t3
 
-        for i, (p,im,im_0,det) in enumerate(zip(path, img, im0, pred)):  # per image (= per one TTA)
+        for i, (p, im, im_0, det) in enumerate(
+            zip(path, img, im0, pred)
+        ):  # per image (= per one TTA)
             seen += 1
-            
+
             # create json for results
             dict_file = {"file_name": f"{p.split('/')[-1]}", "result": []}
             dict_count = {}
@@ -135,7 +141,6 @@ if __name__ == "__main__":
             # Rescale boxes from img_size to im0 size
             if det.shape[0]:
                 det[:, :4] = scale_coords(im.shape[1:], det[:, :4], im_0.numpy()).round()
-
 
             # check bboxes
             h, w = im_0[:2]
@@ -198,6 +203,6 @@ if __name__ == "__main__":
     if os.path.exists(f"{SAVE_DIR}/{SAVE_FILE}"):
         os.remove(f"{SAVE_DIR}/{SAVE_FILE}")
     with open(f"{SAVE_DIR}/{SAVE_FILE}", "w") as f:
-        json.dump(dict_json, f)
+        json.dump(dict_json, f, indent=4)
     print(f">> Results saved to {SAVE_DIR}/{SAVE_FILE}")
     ######################################################################################
