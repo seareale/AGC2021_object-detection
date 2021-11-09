@@ -44,7 +44,7 @@ def get_true_annotation(config, one_path=None):
     for p in path if isinstance(path, list) else [path]:
         p = Path('labels'.join(p.split('images')))
         if p.is_dir():
-            files += Path(p).rglob('*.*')
+            files += Path(p).rglob('*.txt')
         else:
             raise Exception(f'{p} is not directory')
     files = sorted(files)
