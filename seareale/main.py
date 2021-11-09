@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # load datasets
     dataset = LoadImages(
-        hyp["path"], img_size=imgsz, stride=stride, auto=False if hyp["tta"] else True
+        hyp["path"], img_size=imgsz, stride=stride, auto=False # if hyp["tta"] else True
     )
     loader = torch.utils.data.DataLoader
     dataloader = loader(dataset,
