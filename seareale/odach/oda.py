@@ -1,7 +1,5 @@
 # Written by @kentaroy47
 
-from collections import defaultdict
-
 import albumentations.augmentations.transforms as A
 import numpy as np
 import torch
@@ -376,10 +374,9 @@ class TTAWrapper:
 
     # TODO: change to call
     def __call__(self, img):
-        b_boxes = defaultdict(list)
-        b_scores = defaultdict(list)
-        b_labels = defaultdict(list)
-
+        b_boxes = [[] for _ in range(img.shape[0])]
+        b_scores = [[] for _ in range(img.shape[0])]
+        b_labels = [[] for _ in range(img.shape[0])]
         # TTA loop
         for tta in self.ttas:
             # gen img
@@ -400,12 +397,12 @@ class TTAWrapper:
                 b_scores[idx].append(result["scores"].cpu().numpy()[ind])
                 b_labels[idx].append(result["labels"].cpu().numpy()[ind])
 
-        for img in b_boxes.keys():
+        for img in range(len(b_boxes)):
             b_boxes[img], b_scores[img], b_labels[img] = self.nms(
                 b_boxes[img], b_scores[img], b_labels[img]
             )
 
-        return list(b_boxes.values()), list(b_scores.values()), list(b_labels.values())
+        return b_boxes, b_scores, b_labels
 
 
 # for use in EfficientDets
