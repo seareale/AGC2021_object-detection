@@ -376,7 +376,7 @@ class TTAWrapper:
     def __call__(self, img):
         b_boxes = [[] for _ in range(img.shape[0])]
         b_scores = [[] for _ in range(img.shape[0])]
-        b_labels = [[] for _ in range(img.shape[0])])
+        b_labels = [[] for _ in range(img.shape[0])]
         # TTA loop
         for tta in self.ttas:
             # gen img
