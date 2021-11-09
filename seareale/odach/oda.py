@@ -372,8 +372,7 @@ class TTAWrapper:
     def tta_num(self):
         return len(self.ttas)
 
-    # TODO: change to call
-    def __call__(self, img):
+    def tta_inference(self, img):
         b_boxes = [[] for _ in range(img.shape[0])]
         b_scores = [[] for _ in range(img.shape[0])]
         b_labels = [[] for _ in range(img.shape[0])]
@@ -396,13 +395,24 @@ class TTAWrapper:
                 b_boxes[idx].append(boxes[ind])
                 b_scores[idx].append(result["scores"].cpu().numpy()[ind])
                 b_labels[idx].append(result["labels"].cpu().numpy()[ind])
-
-        for img in range(len(b_boxes)):
-            b_boxes[img], b_scores[img], b_labels[img] = self.nms(
-                b_boxes[img], b_scores[img], b_labels[img]
-            )
-
         return b_boxes, b_scores, b_labels
+
+    def tta_nms(self, b_boxes, b_scores, b_labels):
+        """
+        NMS to different augmented images for tta
+        """
+        for i in range(len(b_boxes)):
+            b_boxes[i], b_scores[i], b_labels[i] = self.nms(b_boxes[i], b_scores[i], b_labels[i])
+        return b_boxes, b_scores, b_labels
+
+    # TODO: change to call
+    def __call__(self, img):
+        b_boxes, b_scores, b_labels = self.tta_inference(img)
+        b_boxes, b_scores, b_labels = self.tta_nms(b_boxes, b_scores, b_labels)
+        return b_boxes, b_scores, b_labels
+
+    def without_nms(self, img):
+        b_boxes, b_scores, b_labels = self.tta_inference(img)
 
 
 # for use in EfficientDets

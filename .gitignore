@@ -3,6 +3,7 @@
 .lh/
 .vscode/
 __pycache__/
+*.cache
 
 # log
 *.json
