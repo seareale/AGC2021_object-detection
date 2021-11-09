@@ -203,6 +203,6 @@ if __name__ == "__main__":
     if os.path.exists(f"{SAVE_DIR}/{SAVE_FILE}"):
         os.remove(f"{SAVE_DIR}/{SAVE_FILE}")
     with open(f"{SAVE_DIR}/{SAVE_FILE}", "w") as f:
-        json.dump(dict_json, f, indent=4)
+        json.dump(dict_json, f)
     print(f">> Results saved to {SAVE_DIR}/{SAVE_FILE}")
     ######################################################################################
