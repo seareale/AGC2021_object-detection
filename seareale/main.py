@@ -107,9 +107,9 @@ if __name__ == "__main__":
                 p = p[p[:, 4] > hyp["tta-conf"]]
                 
                 # for No object case
-                if len(p) == 0:
+                if len(p) == 0 and len(p_copy) != 0:
                     p = p_copy[p_copy[:, 4]==np.max(p_copy[:, 4])]
-
+                    
                 pred.append(p)
 
             t3 = t4 = time_sync()  # inference time
@@ -147,11 +147,10 @@ if __name__ == "__main__":
             
             # for No object case
             for idx, (batch, batch_copy) in enumerate(zip(pred, pred_copy)):
-                if len(batch) == 0:
+                if len(batch) == 0 and len(batch_copy) != 0:
                     batch_copy = batch_copy[batch_copy[:, 4]==np.max(batch_copy[:, 4])]
                     pred[idx] = batch_copy
-            
-            t4 = time_sync()  # inference time
+
             t4 = time_sync()  # NMS time
             dt[2] += t4 - t3
 
@@ -200,10 +199,19 @@ if __name__ == "__main__":
                     dict_count[cls_num] += 1
 
             # results to dict
+            num_list = list(range(7))
+            for k in dict_count.keys():
+                if k == -1:
+                    continue 
+                num_list.remove(k)
+            for k in num_list:
+                dict_count[k] = 0
+
             for k, v in dict_count.items():
+                if k == -1:
+                    continue
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
-            if len(dict_count.items()) == 0:
-                dict_file["result"].append({"label": 'c_1', "count": '0'})
+                
             dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time

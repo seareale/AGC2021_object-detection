@@ -107,6 +107,8 @@ def get_cls_confMat_2021(label_num, true_class_dict, pred_class_dict):
             continue
         pred = pred_class_dict[key][label_num]
 
+        if gt == 0 or pred ==0:
+            continue 
         conf_mat[gt-1][pred-1] += 1
 
     return conf_mat, target_names

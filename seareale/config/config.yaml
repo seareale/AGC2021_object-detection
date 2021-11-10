@@ -1,5 +1,6 @@
 weights: ['weights/x6_neck-det_last.pt']
-path: '/home/agc2021/dataset/'
+# path: '/home/haejin/ssd_1/AGC2021_submit/datasets'
+path: '/home/agc2021/dataset'
 
 names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
 
@@ -17,7 +18,7 @@ tta-conf: 0.4
 #                 oda.Multiply(0.9), oda.Multiply(1.1),
 #                 oda.RandColorJitter(),
 #                 oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
-tta-aug: [0,1] # index of tta-aug-list
+tta-aug: [] # index of tta-aug-list
 tta-scale: [1]
 
 outbound: 20 # pixel
@@ -25,6 +26,6 @@ bbox-over: 0.3
 bbox-under: 32
 
 agnostic-nms: False
-tta: False
+tta: True
 half: True
 fuse: False
