@@ -176,6 +176,8 @@ if __name__ == "__main__":
             # results to dict
             for k, v in dict_count.items():
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
+            if len(dict_count.items()) == 0:
+                dict_file["result"].append({"label": 'c_1', "count": '0'})
             dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time
