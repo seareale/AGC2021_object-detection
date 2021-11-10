@@ -25,6 +25,6 @@ bbox-over: 0.3
 bbox-under: 32
 
 agnostic-nms: False
-tta: True
+tta: False
 half: True
 fuse: False

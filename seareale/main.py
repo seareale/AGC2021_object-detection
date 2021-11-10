@@ -100,8 +100,15 @@ if __name__ == "__main__":
             for b, s, l in zip(boxes, scores, labels):
                 p = np.concatenate([b, np.array([s]).T, np.array([l]).T], axis=1)
 
+                # for No object case
+                p_copy = p.copy()
+
                 # TTA conf_thres
                 p = p[p[:, 4] > hyp["tta-conf"]]
+                
+                # for No object case
+                if len(p) == 0:
+                    p = p_copy[p_copy[:, 4]==np.max(p_copy[:, 4])]
 
                 pred.append(p)
 
@@ -116,7 +123,18 @@ if __name__ == "__main__":
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
 
-            # NMS
+            # for No object case
+            pred_copy = non_max_suppression(
+                pred,
+                0.1,
+                hyp["iou"],
+                None,
+                hyp["agnostic-nms"],
+                multi_label=False,
+                max_det=hyp["max-det"],
+            )
+
+            # NMS           
             pred = non_max_suppression(
                 pred,
                 hyp["conf"],
@@ -126,6 +144,14 @@ if __name__ == "__main__":
                 multi_label=False,
                 max_det=hyp["max-det"],
             )
+            
+            # for No object case
+            for idx, (batch, batch_copy) in enumerate(zip(pred, pred_copy)):
+                if len(batch) == 0:
+                    batch_copy = batch_copy[batch_copy[:, 4]==np.max(batch_copy[:, 4])]
+                    pred[idx] = batch_copy
+            
+            t4 = time_sync()  # inference time
             t4 = time_sync()  # NMS time
             dt[2] += t4 - t3
 
