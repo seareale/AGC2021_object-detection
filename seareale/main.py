@@ -205,6 +205,7 @@ if __name__ == "__main__":
                     continue 
                 num_list.remove(k)
             for k in num_list:
+                # warning for submitting
                 dict_count[k] = 0
 
             for k, v in dict_count.items():
