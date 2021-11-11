@@ -12,13 +12,17 @@ max-det: 30
 # 140 # 7 * 20 (class_num * max_object_num)
 
 tta-conf: 0.4
-# TTA_AUG_LIST = [oda.Rotate90Left(), oda.Rotate90Right(),
-#                 oda.HorizontalFlip(), oda.VerticalFlip(),
-#                 oda.Multiply(0.9), oda.Multiply(1.1),
-#                 oda.RandColorJitter(),
-#                 oda.Blur(), oda.MotionBlur(), oda.MedianBlur()]
-tta-aug: [0,1,3,6,7,9] # index of tta-aug-list
-tta-scale: [1]
+# TTA_AUG_LIST = [
+#     oda.Rotate90Left(),
+#     oda.Rotate90Right(),
+#     oda.HorizontalFlip(),
+#     oda.VerticalFlip(),
+#     oda.RandColorJitter(),
+#     oda.TorchBlur(),
+#     oda.TorchMedianBlur()
+# ]
+tta-aug: [5] # index of tta-aug-list
+tta-scale: [1, 1.3, 1.5]
 
 outbound: 20 # pixel
 bbox-over: 0.3

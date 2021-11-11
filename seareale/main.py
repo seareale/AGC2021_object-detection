@@ -22,12 +22,9 @@ TTA_AUG_LIST = [
     oda.Rotate90Right(),
     oda.HorizontalFlip(),
     oda.VerticalFlip(),
-    oda.Multiply(0.9),
-    oda.Multiply(1.1),
     oda.RandColorJitter(),
-    oda.Blur(),
-    oda.MotionBlur(),
-    oda.MedianBlur(),
+    oda.TorchBlur(),
+    oda.TorchMedianBlur()
 ]
 
 if __name__ == "__main__":
