@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # inference
     dict_json = {"answer": []}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
-    box_count = [0, 0, 0, 0]
+    box_count = [0, 0, 0, 0, 0]
     for path, img, im0 in tqdm(dataloader):
         t1 = time_sync()  # start time
 
@@ -179,16 +179,17 @@ if __name__ == "__main__":
                     box_count[1] += 1
                     det[idx, 5] = -1
 
-                obj_area = bbox[2] * bbox[3]
-                # remove oversize bbox
-                if obj_area / img_area > hyp["bbox-over"]:
-                    box_count[2] += 1
-                    det[idx, 5] = -1
+                if hyp["bbox-filter"]:
+                    obj_area = bbox[2] * bbox[3]
+                    # remove oversize bbox
+                    if obj_area / img_area > hyp["bbox-over"]:
+                        box_count[2] += 1
+                        det[idx, 5] = -1
 
-                # remove undersize bbox
-                if obj_area < (h / hyp["bbox-under"] * w / hyp["bbox-under"]):
-                    box_count[3] += 1
-                    det[idx, 5] = -1
+                    # remove undersize bbox
+                    if obj_area < (h / hyp["bbox-under"] * w / hyp["bbox-under"]):
+                        box_count[3] += 1
+                        det[idx, 5] = -1
 
             # count objects
             for cls_num in det[:, 5]:
@@ -198,25 +199,15 @@ if __name__ == "__main__":
                 else:
                     dict_count[cls_num] += 1
 
-            # num_list = list(range(7))
-            # for k in dict_count.keys():
-            #     if k == -1:
-            #         continue 
-            #     num_list.remove(k)
-            # for k in num_list:
-            #     # warning for submitting
-            #     dict_count[k] = 0
-
             # results to dict
             for k, v in dict_count.items():
                 if k == -1:
                     continue
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
             
+            # for No object case
             if len(dict_file["result"]) == 0:
-                print('------------------------------')
-                print('No object!')
-                print('------------------------------')
+                box_count[4] += 1
                 dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
             
             dict_json["answer"].append(dict_file)
@@ -238,7 +229,7 @@ if __name__ == "__main__":
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
     print(
-        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]})"
+        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]}), No Object({box_count[4]})"
     )
     print(f"-------------------------------------------------------------------------------------")
 
