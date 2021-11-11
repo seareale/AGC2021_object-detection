@@ -105,7 +105,7 @@ if __name__ == "__main__":
                 
                 # for No object case
                 if len(p) == 0 and len(p_copy) != 0:
-                    p = p_copy[p_copy[:, 4]==np.max(p_copy[:, 4])]
+                    p = p_copy[p_copy[:, 4] > hyp["tta-conf"]*0.5]
                     
                 pred.append(p)
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
             # for No object case
             pred_copy = non_max_suppression(
                 pred,
-                0.1,
+                hyp["conf"]*0.5,
                 hyp["iou"],
                 None,
                 hyp["agnostic-nms"],
@@ -145,7 +145,6 @@ if __name__ == "__main__":
             # for No object case
             for idx, (batch, batch_copy) in enumerate(zip(pred, pred_copy)):
                 if len(batch) == 0 and len(batch_copy) != 0:
-                    batch_copy = batch_copy[batch_copy[:, 4]==np.max(batch_copy[:, 4])]
                     pred[idx] = batch_copy
 
             t4 = time_sync()  # NMS time
@@ -195,21 +194,24 @@ if __name__ == "__main__":
                 else:
                     dict_count[cls_num] += 1
 
-            # results to dict
-            num_list = list(range(7))
-            for k in dict_count.keys():
-                if k == -1:
-                    continue 
-                num_list.remove(k)
-            for k in num_list:
-                # warning for submitting
-                dict_count[k] = 0
+            # num_list = list(range(7))
+            # for k in dict_count.keys():
+            #     if k == -1:
+            #         continue 
+            #     num_list.remove(k)
+            # for k in num_list:
+            #     # warning for submitting
+            #     dict_count[k] = 0
 
+            # results to dict
             for k, v in dict_count.items():
                 if k == -1:
                     continue
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
-                
+            
+            if len(dict_file["result"]) == 0:
+                dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
+            
             dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time
