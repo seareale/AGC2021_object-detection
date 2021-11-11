@@ -181,7 +181,7 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False):
             conf_mat = get_cls_confMat_2021(i, true_class_dict, pred_class_dict)
         conf_mat_list.append(conf_mat)
 
-        if len(conf_mat[0]) == 0 or (conf_mat[0].shape[0] == 1 and include_zero):
+        if len(conf_mat[0]) == 0 or (conf_mat[0].shape[0] == 1 and include_zero) or sum(conf_mat) == 0:
             continue
         else:
             result = get_f1score_2021(conf_mat[0], include_zero=include_zero)
