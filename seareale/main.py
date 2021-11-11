@@ -94,11 +94,13 @@ if __name__ == "__main__":
             boxes, scores, labels = tta_model(img)
 
             pred = []
+            pred_backup = []
             for b, s, l in zip(boxes, scores, labels):
                 p = np.concatenate([b, np.array([s]).T, np.array([l]).T], axis=1)
 
                 # for No object case
                 p_copy = p.copy()
+                pred_backup.append(p_copy)
 
                 # TTA conf_thres
                 p = p[p[:, 4] > hyp["tta-conf"]]
@@ -119,6 +121,8 @@ if __name__ == "__main__":
 
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
+            
+            pred_backup = pred.copy()
 
             # for No object case
             pred_copy = non_max_suppression(
@@ -210,6 +214,9 @@ if __name__ == "__main__":
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
             
             if len(dict_file["result"]) == 0:
+                print('------------------------------')
+                print('No object!')
+                print('------------------------------')
                 dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
             
             dict_json["answer"].append(dict_file)
