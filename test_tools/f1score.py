@@ -100,7 +100,8 @@ def get_cls_confMat_2021(label_num, true_class_dict, pred_class_dict):
         if label_num not in pred_class_dict[key].keys():
             continue
         pred = pred_class_dict[key][label_num]
-
+        if gt == 0 or pred == 0:
+            continue
         conf_mat[gt - 1][pred - 1] += 1
 
     return conf_mat, target_names
@@ -137,7 +138,6 @@ def get_cls_confMat_2021_zero(label_num, true_class_dict, pred_class_dict):
 
 def get_f1score_2021(mat, include_zero=False):
     gt_max = mat.shape[0]
-
     precision = []
     recall = []
     f1score = []
@@ -177,7 +177,11 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False, print_
             conf_mat = get_cls_confMat_2021(i, true_class_dict, pred_class_dict)
         conf_mat_list.append(conf_mat)
 
-        if len(conf_mat[0]) == 0 or (conf_mat[0].shape[0] == 1 and include_zero):
+        if (
+            len(conf_mat[0]) == 0
+            or (conf_mat[0].shape[0] == 1 and include_zero)
+            or np.sum(conf_mat[0]) == 0
+        ):
             continue
         else:
             result = get_f1score_2021(conf_mat[0], include_zero=include_zero)
@@ -190,8 +194,10 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False, print_
     if print_result:
         print("------------------------")
         print("{:9s} : {:0.4f}".format("TOTAL", macro_f1 / len(all_f1_list)))
-
-    return macro_f1 / len(all_f1_list), all_f1_list, conf_mat_list, target_names
+    if len(all_f1_list):
+        return macro_f1 / len(all_f1_list), all_f1_list, conf_mat_list, target_names
+    else:
+        return 0, [], [], []
 
 
 def show_confMat(conf_mat_list, exp_name):

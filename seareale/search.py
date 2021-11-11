@@ -10,6 +10,7 @@ sys.path.append(FILE.parents[1].as_posix())
 
 import json
 import os
+import warnings
 from collections import defaultdict
 from itertools import product
 
@@ -33,17 +34,7 @@ TTA_AUG_LIST = [
 ]
 
 if __name__ == "__main__":
-    # if __package__ is None:
-    #     import sys
-    #     from os import path
-
-    #     print(path.dirname(path.dirname(path.abspath(__file__))))
-    #     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-    #     from test_tools.f1score import *
-
-    # else:
-    #     from ..test_tools.f1score import *
-
+    warnings.filterwarnings(action="ignore")
     ######################################################################################
     # 1. Loading
     ######################################################################################
@@ -143,30 +134,38 @@ if __name__ == "__main__":
     ######################################################################################
     # 3. Get optimal combination using JSON
     ######################################################################################
+    if os.path.exists(f"{SAVE_DIR}/{SAVE_F1}"):
+        print("Load previous f1 results")
+        with open(f"{SAVE_DIR}/{SAVE_F1}") as f:
+            f1_results = json.load(f)
+    else:
+        print("Create new f1 results")
+        f1_results = {}
+
     scale_transforms = []
-    for scale_list in product(*list([oda.MultiScale(scl), None] for scl in TTA_SCALE)):
+    for scale_list in product(*list([f"MultiScale({scl})", None] for scl in TTA_SCALE)):
         scale_transforms.append([scl_tf for scl_tf in scale_list if scl_tf is not None])
     scale_transform = scale_transforms[:-1]
+    oda_transforms = product(*list([str(i), None] for i in TTA_AUG_LIST))
 
-    oda_transforms = list(product(*list([i, None] for i in TTA_AUG_LIST)))
-
-    f1_results = {}
     nms = oda.nms_func(skip_box_thr=0.5)
 
-    scale_comb = list(product(*list([oda.MultiScale(scl), None] for scl in TTA_SCALE)))
-    scale_comb = [scl_transform for scl_transform in scale_comb if scl_transform is not None]
-
-    print("Get performance of each comb")
-    for s_list, oda_list in tqdm(product(*[scale_transform, oda_transforms])):
-        comb_names = defaultdict(list)
-        comb_input_sizes = defaultdict(list)
-        comb_orig_sizes = defaultdict(list)
-        comb_bboxes = defaultdict(list)
-        comb_scores = defaultdict(list)
-        comb_labels = defaultdict(list)
+    num_of_data = len(total_results[next(iter(total_results.keys()))])
+    all_combinations = list(product(scale_transform, oda_transforms))
+    print(f"Get performance of {len(all_combinations)} comb")
+    for s_list, oda_list in tqdm(all_combinations):
+        comb_name = str(s_list) + "x" + str([aug for aug in oda_list if aug is not None])
+        if comb_name in f1_results.keys():
+            continue
+        comb_names = [None for _ in range(num_of_data)]
+        comb_input_sizes = [None for _ in range(num_of_data)]
+        comb_orig_sizes = [None for _ in range(num_of_data)]
+        comb_bboxes = [[] for _ in range(num_of_data)]
+        comb_scores = [[] for _ in range(num_of_data)]
+        comb_labels = [[] for _ in range(num_of_data)]
         for s in s_list:
             for comb in product(*list([i, None] for i in oda_list)):
-                augs_name = str(oda.TTACompose([s] + [aug for aug in comb if aug is not None]))
+                augs_name = str([s] + [aug for aug in comb if aug is not None]).replace("'", "")
                 for idx, result_per_img in enumerate(total_results[augs_name]):
                     comb_names[idx] = result_per_img["file_name"]
                     comb_input_sizes[idx] = result_per_img["input_size"]
@@ -179,12 +178,12 @@ if __name__ == "__main__":
         answers = {"answer": []}
         for idx, (file_name, input_size, orig_size, bboxes, scores, labels) in enumerate(
             zip(
-                comb_names.values(),
-                comb_input_sizes.values(),
-                comb_orig_sizes.values(),
-                comb_bboxes.values(),
-                comb_scores.values(),
-                comb_labels.values(),
+                comb_names,
+                comb_input_sizes,
+                comb_orig_sizes,
+                comb_bboxes,
+                comb_scores,
+                comb_labels,
             )
         ):
             answer = {"file_name": file_name, "result": []}
@@ -223,15 +222,27 @@ if __name__ == "__main__":
                 else:
                     dict_count[cls_num] += 1
 
+            # results to dict
+            num_list = list(range(7))
+            for k in dict_count.keys():
+                if k == -1:
+                    continue
+                num_list.remove(k)
+            for k in num_list:
+                dict_count[k] = 0
+
             # create answer
             for k, v in dict_count.items():
+                if k == -1:
+                    continue
                 answer["result"].append({"label": hyp["names"][k], "count": str(v)})
             answers["answer"].append(answer)
+
+        # Calculate f1 score of each combination
         true_dict = get_true_annotation(f"{SAVE_DIR}/config/config.yaml", one_path=None)
         pred_dict = get_pred_annotation(None, data=answers)
         f1, *_ = AGC2021_f1score(true_dict, pred_dict, print_result=False)
 
-        comb_name = str(s_list) + "x" + str([aug for aug in oda_list if aug is not None])
         f1_results[comb_name] = f1
         # sort f1_results using value
         f1_results = dict(sorted(f1_results.items(), key=lambda x: x[1], reverse=True))
