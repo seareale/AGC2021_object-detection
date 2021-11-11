@@ -25,6 +25,7 @@ tta-aug: [0,1] # index of tta-aug-list
 tta-scale: [1]
 
 outbound: 20 # pixel
+bbox-filter: True
 bbox-over: 0.3
 bbox-under: 32
 
