@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 from einops import asnumpy, rearrange
+from .native import MedianPool2d, SameAvg2D
 
 
 def albumentations(func):
@@ -42,6 +43,39 @@ class Base:
         boxes format [x1, y1, x2, y2]
         """
         raise NotImplementedError
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__
+
+
+class TorchMedianBlur(Base):
+    def __init__(self, kernel_size=7):
+        self.median = MedianPool2d(kernel_size, same=True)
+
+    def augment(self, image):
+        image = image.unsqueeze(0)
+        return self.median(image).squeeze(0)
+
+    def batch_augment(self, images):
+        return self.median(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class TorchBlur(Base):
+    def __init__(self, kernel_size=7):
+        self.blur = SameAvg2D(kernel_size, same=True)
+
+    def augment(self, image):
+        image = image.unsqueeze(0)
+        return self.blur(image).squeeze(0)
+
+    def batch_augment(self, images):
+        return self.blur(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
 
 
 class RandColorJitter(Base):
@@ -93,7 +127,7 @@ class MotionBlur(Base):
 
 
 class MedianBlur(Base):
-    def __init__(self, blur_limit=7) -> None:
+    def __init__(self, blur_limit=5) -> None:
         self.medianblur = A.MedianBlur(blur_limit=blur_limit, p=1)
 
     @albumentations
@@ -200,6 +234,9 @@ class MultiScale(Base):
     def deaugment_boxes(self, boxes):
         return boxes / self.imscale
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.imscale})"
+
 
 class MultiScaleFlip(Base):
     # change scale of the image and hflip.
@@ -272,6 +309,9 @@ class TTACompose(Base):
         for transform in self.transforms[::-1]:
             boxes = transform.deaugment_boxes(boxes)
         return self.prepare_boxes(boxes)
+
+    def __repr__(self):
+        return str(self.transforms)
 
 
 from .nms import nms, soft_nms
@@ -411,9 +451,6 @@ class TTAWrapper:
         b_boxes, b_scores, b_labels = self.tta_nms(b_boxes, b_scores, b_labels)
         return b_boxes, b_scores, b_labels
 
-    def without_nms(self, img):
-        b_boxes, b_scores, b_labels = self.tta_inference(img)
-
 
 # for use in EfficientDets
 class wrap_effdet:
@@ -424,6 +461,7 @@ class wrap_effdet:
 
     def __call__(self, img, score_threshold=0.22):
         # inference
+        # TODO: Fix code
         det = self.model(img, torch.tensor([1] * images.shape[0]).float().cuda())
 
         predictions = []
