@@ -192,7 +192,7 @@ def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False):
             target_names.append(i)
     print('------------------------')
     if macro_f1 == 0:
-        print("{:9s} : {:0.4f}".format('TOTAL', 0)))
+        print("{:9s} : {:0.4f}".format('TOTAL', 0))
     else:
         print("{:9s} : {:0.4f}".format('TOTAL', macro_f1/len(all_f1_list)))
 
