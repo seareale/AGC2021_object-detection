@@ -14,6 +14,7 @@ archive/
 install.txt
 *.pt
 *.ipynb
+*.zip
 
 # data
 *.txt
