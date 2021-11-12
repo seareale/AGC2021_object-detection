@@ -224,6 +224,7 @@ if __name__ == "__main__":
             # for No object case
             if len(dict_file["result"]) == 0:
                 box_count[4] += 1
+                warnings.warn(f"NO object : {box_count}")
                 dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
 
             dict_json["answer"].append(dict_file)
@@ -245,9 +246,6 @@ if __name__ == "__main__":
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
     print(f">> Results : {', '.join([f'{name}({t})' for name,t in zip(count_name, box_count)])}")
-    warnings.warn(
-        f">> Results : {', '.join([f'{name}({t})' for name,t in zip(count_name, box_count)])}"
-    )
     print(f"-------------------------------------------------------------------------------------")
 
     # Save results json
