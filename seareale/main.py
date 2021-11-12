@@ -87,6 +87,7 @@ if __name__ == "__main__":
     dict_json = {"answer": []}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     box_count = [0, 0, 0, 0, 0]
+    count_name = ["All", "Outbound", "Over-size", "Under-size", "No Object"]
     for path, img, im0 in tqdm(dataloader):
         t1 = time_sync()  # start time
 
@@ -243,13 +244,9 @@ if __name__ == "__main__":
     print(f">> Time : model load - %.6fs" % time_load)
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
-    print(
-        f">> Results : All(%d), Outbound(%d), Over-size(%d), Under-size(%d), No Object(%d)"
-        % box_count
-    )
+    print(f">> Results : {', '.join([f'{name}({t})' for name,t in zip(count_name, box_count)])}")
     warnings.warn(
-        f">> Results : All(%d), Outbound(%d), Over-size(%d), Under-size(%d), No Object(%d)"
-        % box_count
+        f">> Results : {', '.join([f'{name}({t})' for name,t in zip(count_name, box_count)])}"
     )
     print(f"-------------------------------------------------------------------------------------")
 
