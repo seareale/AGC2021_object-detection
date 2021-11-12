@@ -11,6 +11,7 @@ import os
 import time
 
 import torch
+import yaml
 from tqdm import tqdm
 
 import odach as oda
@@ -24,7 +25,7 @@ TTA_AUG_LIST = [
     oda.VerticalFlip(),
     oda.RandColorJitter(),
     oda.TorchBlur(),
-    oda.TorchMedianBlur()
+    oda.TorchMedianBlur(),
 ]
 
 if __name__ == "__main__":
@@ -40,18 +41,18 @@ if __name__ == "__main__":
 
     # load model
     model_list = []
-    for model_weights in hyp['weights']:
+    for model_weights in hyp["weights"]:
         device = torch.device("cuda:0")
         ckpt = torch.load(f"{SAVE_DIR}/{model_weights}", map_location=device)
         model = ckpt["ema" if ckpt.get("ema") else "model"].float()
         stride = int(model.stride.max())
-        
+
         if hyp["fuse"]:
             model.fuse()
         model.eval()
         if hyp["half"]:
             model.half()  # to FP16
-    
+
         model_list.append(model)
 
     # load datasets
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         TTA_AUG = [x for i, x in enumerate(TTA_AUG_LIST) if i in hyp["tta-aug"]]
         TTA_SCALE = hyp["tta-scale"]
 
-        yolov5 = oda.wrap_yolov5(model_list, non_max_suppression) 
+        yolov5 = oda.wrap_yolov5(model_list, non_max_suppression)
         ########################################
         tta_model = oda.TTAWrapper(
             yolov5, TTA_AUG, TTA_SCALE, device=device, half_flag=hyp["half"]
@@ -111,11 +112,11 @@ if __name__ == "__main__":
 
                 # TTA conf_thres
                 p = p[p[:, 4] > hyp["tta-conf"]]
-                
+
                 # for No object case
                 if len(p) == 0 and len(p_copy) != 0:
-                    p = p_copy[p_copy[:, 4] > hyp["tta-conf"]*0.5]
-                    
+                    p = p_copy[p_copy[:, 4] > hyp["tta-conf"] * 0.5]
+
                 pred.append(p)
 
             t3 = t4 = time_sync()  # inference time
@@ -135,13 +136,13 @@ if __name__ == "__main__":
 
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
-            
+
             pred_backup = pred.copy()
 
             # for No object case
             pred_copy = non_max_suppression(
                 pred,
-                hyp["conf"]*0.5,
+                hyp["conf"] * 0.5,
                 hyp["iou"],
                 None,
                 hyp["agnostic-nms"],
@@ -149,7 +150,7 @@ if __name__ == "__main__":
                 max_det=hyp["max-det"],
             )
 
-            # NMS           
+            # NMS
             pred = non_max_suppression(
                 pred,
                 hyp["conf"],
@@ -159,7 +160,7 @@ if __name__ == "__main__":
                 multi_label=False,
                 max_det=hyp["max-det"],
             )
-            
+
             # for No object case
             for idx, (batch, batch_copy) in enumerate(zip(pred, pred_copy)):
                 if len(batch) == 0 and len(batch_copy) != 0:
@@ -218,12 +219,12 @@ if __name__ == "__main__":
                 if k == -1:
                     continue
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
-            
+
             # for No object case
             if len(dict_file["result"]) == 0:
                 box_count[4] += 1
                 dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
-            
+
             dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time

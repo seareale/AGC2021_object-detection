@@ -12,8 +12,10 @@ archive/
 
 # file
 install.txt
+*.ipynb
 *.pt
 *.zip
 
 # data
 *.jpg
+*.txt
