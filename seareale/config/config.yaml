@@ -21,7 +21,7 @@ tta-conf: 0.4
 #     oda.TorchBlur(),
 #     oda.TorchMedianBlur()
 # ]
-tta-aug: [2] # index of tta-aug-list
+tta-aug: [0,1, 2, 3, 5, 6] # index of tta-aug-list
 tta-scale: [1]
 
 outbound: 20 # pixel num from edges
@@ -33,3 +33,4 @@ agnostic-nms: False
 tta: True
 half: True
 fuse: False
+search_result: '/home/jiuk/AGC2021_submit/seareale/en_output_results.json'

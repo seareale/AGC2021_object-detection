@@ -5,8 +5,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
+import torchvision.transforms.functional as TF
 from einops import asnumpy, rearrange
-from .native import MedianPool2d, SameAvg2D
 
 from .native import MedianPool2d, SameAvg2D
 
@@ -75,6 +75,66 @@ class TorchBlur(Base):
 
     def batch_augment(self, images):
         return self.blur(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class Brightness(Base):
+    def __init__(self, brightness=1.2) -> None:
+        self.brightness = brightness
+
+    def augment(self, image):
+        image = TF.adjust_brightness(image, self.brightness)
+        return image
+
+    def batch_augment(self, images):
+        return self.augment(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class Contrast(Base):
+    def __init__(self, contrast=1.2) -> None:
+        self.contrast = contrast
+
+    def augment(self, image):
+        image = TF.adjust_contrast(image, self.contrast)
+        return image
+
+    def batch_augment(self, images):
+        return self.augment(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class Saturation(Base):
+    def __init__(self, saturation=1.2) -> None:
+        self.saturation = saturation
+
+    def augment(self, image):
+        image = TF.adjust_saturation(image, self.saturation)
+        return image
+
+    def batch_augment(self, images):
+        return self.augment(images)
+
+    def deaugment_boxes(self, boxes):
+        return boxes
+
+
+class Hue(Base):
+    def __init__(self, hue=1.2) -> None:
+        self.hue = hue
+
+    def augment(self, image):
+        image = TF.adjust_hue(image, self.hue)
+        return image
+
+    def batch_augment(self, images):
+        return self.augment(images)
 
     def deaugment_boxes(self, boxes):
         return boxes
