@@ -8,6 +8,8 @@ import torchvision.transforms as T
 from einops import asnumpy, rearrange
 from .native import MedianPool2d, SameAvg2D
 
+from .native import MedianPool2d, SameAvg2D
+
 
 def albumentations(func):
     """

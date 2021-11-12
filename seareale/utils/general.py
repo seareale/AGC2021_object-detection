@@ -1,18 +1,21 @@
+import os
+
+import cv2
+import numpy as np
 import torch
 import torchvision
-import numpy as np
-import cv2
-import os
-import yaml
 
-torch.set_printoptions(linewidth=320, precision=5, profile='long')
-np.set_printoptions(linewidth=320, formatter={'float_kind': '{:11.5g}'.format})  # format short g, %precision=5
+torch.set_printoptions(linewidth=320, precision=5, profile="long")
+np.set_printoptions(
+    linewidth=320, formatter={"float_kind": "{:11.5g}".format}
+)  # format short g, %precision=5
 cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with PyTorch DataLoader)
-os.environ['NUMEXPR_MAX_THREADS'] = str(min(os.cpu_count(), 8))  # NumExpr max threads
+os.environ["NUMEXPR_MAX_THREADS"] = str(min(os.cpu_count(), 8))  # NumExpr max threads
 
 import math
 import time
-from utils.metrics import box_iou
+
+from .metrics import box_iou
 
 
 def xyxy2xywh(x):
@@ -24,16 +27,19 @@ def xyxy2xywh(x):
     y[:, 3] = x[:, 3] - x[:, 1]  # height
     return y
 
-def is_outbound(points, image_size,  offset=10):
+
+def is_outbound(points, image_size, offset=10):
     w, h = image_size
-    boundary = [(offset, offset),
-                (w-offset, offset),
-                (w-offset, h-offset),
-                (offset, h-offset)]
-    coord_1 = int(points[0] - points[2]/2), int(points[1] - points[3]/2)
-    coord_2 = int(points[0] + points[2]/2), int(points[1] - points[3]/2)
-    coord_3 = int(points[0] + points[2]/2), int(points[1] + points[3]/2)
-    coord_4 = int(points[0] - points[2]/2), int(points[1] + points[3]/2)
+    boundary = [
+        (offset, offset),
+        (w - offset, offset),
+        (w - offset, h - offset),
+        (offset, h - offset),
+    ]
+    coord_1 = int(points[0] - points[2] / 2), int(points[1] - points[3] / 2)
+    coord_2 = int(points[0] + points[2] / 2), int(points[1] - points[3] / 2)
+    coord_3 = int(points[0] + points[2] / 2), int(points[1] + points[3] / 2)
+    coord_4 = int(points[0] - points[2] / 2), int(points[1] + points[3] / 2)
     points = [coord_1, coord_2, coord_3, coord_4]
 
     for idx, ((x0, y0), (x1, y1)) in enumerate(zip(points, boundary)):
@@ -45,8 +51,9 @@ def is_outbound(points, image_size,  offset=10):
             return 3
         if idx == 3 and (x0 < x1 or y0 > y1):
             return 4
-    
+
     return False
+
 
 def clip_coords(boxes, shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
@@ -59,11 +66,16 @@ def clip_coords(boxes, shape):
         boxes[:, [0, 2]] = boxes[:, [0, 2]].clip(0, shape[1])  # x1, x2
         boxes[:, [1, 3]] = boxes[:, [1, 3]].clip(0, shape[0])  # y1, y2
 
+
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
-        gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
+        gain = min(
+            img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1]
+        )  # gain  = old / new
+        pad = (img1_shape[1] - img0_shape[1] * gain) / 2, (
+            img1_shape[0] - img0_shape[0] * gain
+        ) / 2  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -74,15 +86,18 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     clip_coords(coords, img0_shape)
     return coords
 
+
 def time_sync():
     # pytorch-accurate time
     if torch.cuda.is_available():
         torch.cuda.synchronize()
     return time.time()
 
+
 def make_divisible(x, divisor):
     # Returns x evenly divisible by divisor
     return math.ceil(x / divisor) * divisor
+
 
 def check_anchor_order(m):
     # Check anchor order against stride order for YOLOv5 Detect() module m, and correct if necessary
@@ -90,9 +105,10 @@ def check_anchor_order(m):
     da = a[-1] - a[0]  # delta a
     ds = m.stride[-1] - m.stride[0]  # delta s
     if da.sign() != ds.sign():  # same order
-        print('Reversing anchor order')
+        print("Reversing anchor order")
         m.anchors[:] = m.anchors.flip(0)
         m.anchor_grid[:] = m.anchor_grid.flip(0)
+
 
 def xywh2xyxy(x):
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
@@ -103,8 +119,17 @@ def xywh2xyxy(x):
     y[:, 3] = x[:, 1] + x[:, 3] / 2  # bottom right y
     return y
 
-def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False,
-                        labels=(), max_det=300):
+
+def non_max_suppression(
+    prediction,
+    conf_thres=0.25,
+    iou_thres=0.45,
+    classes=None,
+    agnostic=False,
+    multi_label=False,
+    labels=(),
+    max_det=300,
+):
     """Runs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
@@ -115,8 +140,10 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     xc = prediction[..., 4] > conf_thres  # candidates
 
     # Checks
-    assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
-    assert 0 <= iou_thres <= 1, f'Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0'
+    assert (
+        0 <= conf_thres <= 1
+    ), f"Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0"
+    assert 0 <= iou_thres <= 1, f"Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0"
 
     # Settings
     min_wh, max_wh = 2, 4096  # (pixels) minimum and maximum box width and height
@@ -181,18 +208,19 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         if i.shape[0] > max_det:  # limit detections
             i = i[:max_det]
-        if merge and (1 < n < 3E3):  # Merge NMS (boxes merged using weighted mean)
+        if merge and (1 < n < 3e3):  # Merge NMS (boxes merged using weighted mean)
             # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
             iou = box_iou(boxes[i], boxes) > iou_thres  # iou matrix
             weights = iou * scores[None]  # box weights
-            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(1, keepdim=True)  # merged boxes
+            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(
+                1, keepdim=True
+            )  # merged boxes
             if redundant:
                 i = i[iou.sum(1) > 1]  # require redundancy
 
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
-            print(f'WARNING: NMS time limit {time_limit}s exceeded')
+            print(f"WARNING: NMS time limit {time_limit}s exceeded")
             break  # time limit exceeded
 
     return output
-

@@ -1,33 +1,23 @@
-from pathlib import Path
-import os
-
-import yaml
-import json
-import numpy as np
-
 import itertools
-import matplotlib.pyplot as plt
+import json
+import os
+from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
+import yaml
 
 LABELS_NAME = {
-    0 : 'paper',
-    1 : 'paperpack',
-    2 : 'can',
-    3 : 'glass',
-    4 : 'pet',
-    5 : 'plastic',
-    6 : 'vinyl',
+    0: "paper",
+    1: "paperpack",
+    2: "can",
+    3: "glass",
+    4: "pet",
+    5: "plastic",
+    6: "vinyl",
 }
 
-LABELS = {
-    'c_1':0,
-    'c_2':1,
-    'c_3':2,
-    'c_4':3,
-    'c_5':4,
-    'c_6':5,
-    'c_7':6
-    }
+LABELS = {"c_1": 0, "c_2": 1, "c_3": 2, "c_4": 3, "c_5": 4, "c_6": 5, "c_7": 6}
 
 CLASS_NUM = len(LABELS_NAME.keys())
 
@@ -36,45 +26,48 @@ def get_true_annotation(config, one_path=None):
     if one_path == None:
         with open(config) as f:
             hyp = yaml.safe_load(f)
-        path = hyp['path']
-    else :
+        path = hyp["path"]
+    else:
         path = one_path
 
     files = []
     for p in path if isinstance(path, list) else [path]:
-        p = Path('labels'.join(p.split('images')))
+        p = Path("labels".join(p.split("images")))
         if p.is_dir():
             files += Path(p).rglob('*.txt')
         else:
-            raise Exception(f'{p} is not directory')
+            raise Exception(f"{p} is not directory")
     files = sorted(files)
 
     true_class_dict = {}
     for txt_file in files:
         filename = txt_file.name[:-4]
         true_class_dict[filename] = {}
-        with open(txt_file, 'r') as f:
+        with open(txt_file, "r") as f:
             bboxes = f.readlines()
         for bbox in bboxes:
             if int(bbox[0]) not in true_class_dict[filename].keys():
                 true_class_dict[filename][int(bbox[0])] = 1
             else:
                 true_class_dict[filename][int(bbox[0])] += 1
-    
+
     return true_class_dict
 
-def get_pred_annotation(results_json):
-    with open(results_json) as f:
-        data = json.load(f)
+
+def get_pred_annotation(results_json, data=None):
+    if data is None:
+        with open(results_json) as f:
+            data = json.load(f)
 
     pred_class_dict = {}
-    for file in data['answer']:
+    for file in data["answer"]:
         file_count = {}
-        for cls_count in file['result']:
-            file_count[LABELS[cls_count['label']]] = int(cls_count['count'])
-        pred_class_dict[file['file_name'][:-4]] = file_count
+        for cls_count in file["result"]:
+            file_count[LABELS[cls_count["label"]]] = int(cls_count["count"])
+        pred_class_dict[file["file_name"][:-4]] = file_count
 
     return pred_class_dict
+
 
 def get_max_objNum(class_dict, label_num):
     max_num = 0
@@ -86,6 +79,7 @@ def get_max_objNum(class_dict, label_num):
 
     return max_num
 
+
 def get_cls_confMat_2021(label_num, true_class_dict, pred_class_dict):
     for key in true_class_dict.keys():
         if key not in pred_class_dict.keys():
@@ -96,8 +90,8 @@ def get_cls_confMat_2021(label_num, true_class_dict, pred_class_dict):
     index_max = max(gt_max, pred_max)
 
     conf_mat = np.zeros((gt_max, index_max))
-    target_names = (np.arange(1, pred_max+1), np.arange(1, gt_max+1))
-    
+    target_names = (np.arange(1, pred_max + 1), np.arange(1, gt_max + 1))
+
     for key in true_class_dict.keys():
         if label_num not in true_class_dict[key].keys():
             continue
@@ -106,12 +100,11 @@ def get_cls_confMat_2021(label_num, true_class_dict, pred_class_dict):
         if label_num not in pred_class_dict[key].keys():
             continue
         pred = pred_class_dict[key][label_num]
-
-        if gt == 0 or pred ==0:
-            continue 
-        conf_mat[gt-1][pred-1] += 1
-
+        if gt == 0 or pred == 0:
+            continue
+        conf_mat[gt - 1][pred - 1] += 1
     return conf_mat, target_names
+
 
 def get_cls_confMat_2021_zero(label_num, true_class_dict, pred_class_dict):
     for key in true_class_dict.keys():
@@ -122,17 +115,17 @@ def get_cls_confMat_2021_zero(label_num, true_class_dict, pred_class_dict):
     pred_max = get_max_objNum(pred_class_dict, label_num)
     index_max = max(gt_max, pred_max)
 
-    conf_mat = np.zeros((gt_max+1, index_max+1))
-    target_names = (np.arange(pred_max+1), np.arange(gt_max+1))
-    
+    conf_mat = np.zeros((gt_max + 1, index_max + 1))
+    target_names = (np.arange(pred_max + 1), np.arange(gt_max + 1))
+
     for key in true_class_dict.keys():
         if label_num not in true_class_dict[key].keys():
             gt = 0
-        else :
+        else:
             gt = true_class_dict[key][label_num]
         if label_num not in pred_class_dict[key].keys():
             pred = 0
-        else :
+        else:
             pred = pred_class_dict[key][label_num]
 
         conf_mat[gt][pred] += 1
@@ -141,160 +134,213 @@ def get_cls_confMat_2021_zero(label_num, true_class_dict, pred_class_dict):
 
     return conf_mat, target_names
 
+
 def get_f1score_2021(mat, include_zero=False):
     gt_max = mat.shape[0]
-
     precision = []
     recall = []
     f1score = []
     for i in range(gt_max):
-        if sum(mat[i,:]) == 0:
+        if sum(mat[i, :]) == 0:
             continue
-        if include_zero and i==0:
-            continue 
-        tp = mat[i,i]
-        fn = np.sum(mat[i,:]) - tp
-        fp = np.sum(mat[:,i]) - tp
+        if include_zero and i == 0:
+            continue
+        tp = mat[i, i]
+        fn = np.sum(mat[i, :]) - tp
+        fp = np.sum(mat[:, i]) - tp
 
         p = tp / (tp + fp + 1e-8)
         precision.append(p)
         r = tp / (tp + fn + 1e-8)
         recall.append(r)
 
-        f1 = 2*p*r/(p+r + 1e-8)
+        f1 = 2 * p * r / (p + r + 1e-8)
         f1score.append(f1)
 
-    return sum(f1score)/len(f1score), f1score
+    return sum(f1score) / len(f1score), f1score
 
-def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False):
+
+def AGC2021_f1score(true_class_dict, pred_class_dict, include_zero=False, print_result=True):
     macro_f1 = 0
     all_f1_list = []
     conf_mat_list = []
     target_names = []
 
-    print(f"\n>> Macro F1 score {'- include zero' if include_zero else ''}")
-    print('------------------------')
+    if print_result:
+        print(f"\n>> Macro F1 score {'- include zero' if include_zero else ''}")
+        print("------------------------")
     for i in range(CLASS_NUM):
         if include_zero:
             conf_mat = get_cls_confMat_2021_zero(i, true_class_dict, pred_class_dict)
-        else :
+        else:
             conf_mat = get_cls_confMat_2021(i, true_class_dict, pred_class_dict)
         conf_mat_list.append(conf_mat)
 
-        if len(conf_mat[0]) == 0 or (conf_mat[0].shape[0] == 1 and include_zero) or np.sum(conf_mat[0]) == 0:
+        if (
+            len(conf_mat[0]) == 0
+            or (conf_mat[0].shape[0] == 1 and include_zero)
+            or np.sum(conf_mat[0]) == 0
+        ):
             continue
         else:
             result = get_f1score_2021(conf_mat[0], include_zero=include_zero)
             f1, f1_list = result
             macro_f1 += f1
-            print("{:9s} : {:0.4f}".format(LABELS_NAME[i], f1))
+            if print_result:
+                print("{:9s} : {:0.4f}".format(LABELS_NAME[i], f1))
             all_f1_list.append(result)
             target_names.append(i)
-    print('------------------------')
-    if macro_f1 == 0:
-        print("{:9s} : {:0.4f}".format('TOTAL', 0))
+    if print_result:
+        print("------------------------")
+        print("{:9s} : {:0.4f}".format("TOTAL", macro_f1 / len(all_f1_list)))
+    if len(all_f1_list):
+        return macro_f1 / len(all_f1_list), all_f1_list, conf_mat_list, target_names
     else:
-        print("{:9s} : {:0.4f}".format('TOTAL', macro_f1/len(all_f1_list)))
+        return 0, [], [], []
 
-    return macro_f1/len(all_f1_list), all_f1_list, conf_mat_list, target_names
 
 def show_confMat(conf_mat_list, exp_name):
     conf_list = []
     conf_norm_list = []
 
     for i in range(CLASS_NUM):
-        conf = plot_confusion_matrix(conf_mat_list[i][0], LABELS_NAME[i], exp_name, target_names=conf_mat_list[i][1], cmap=None, normalize=False, labels=True, title='Confusion matrix')
-        conf_norm = plot_confusion_matrix(conf_mat_list[i][0], LABELS_NAME[i], exp_name, target_names=conf_mat_list[i][1], cmap=None, normalize=True, labels=True, title='Confusion matrix')
+        conf = plot_confusion_matrix(
+            conf_mat_list[i][0],
+            LABELS_NAME[i],
+            exp_name,
+            target_names=conf_mat_list[i][1],
+            cmap=None,
+            normalize=False,
+            labels=True,
+            title="Confusion matrix",
+        )
+        conf_norm = plot_confusion_matrix(
+            conf_mat_list[i][0],
+            LABELS_NAME[i],
+            exp_name,
+            target_names=conf_mat_list[i][1],
+            cmap=None,
+            normalize=True,
+            labels=True,
+            title="Confusion matrix",
+        )
 
         conf_list.append(conf)
         conf_norm_list.append(conf_norm)
 
     return conf_list, conf_norm_list
 
-def plot_confusion_matrix(cm, name, exp_name, target_names=None, cmap=None, normalize=False, labels=True, title='Confusion matrix'):
+
+def plot_confusion_matrix(
+    cm,
+    name,
+    exp_name,
+    target_names=None,
+    cmap=None,
+    normalize=False,
+    labels=True,
+    title="Confusion matrix",
+):
     # No results case
     if len(cm) == 0 or (cm.shape[0] == 1 and target_names[1][0] == 0):
         return
-    
+
     f1score, _ = get_f1score_2021(cm, include_zero=(target_names[1][0] == 0))
     accuracy = np.trace(cm) / float(np.sum(cm))
     misclass = 1 - accuracy
 
     if cmap is None:
-        cmap = plt.get_cmap('Blues')
+        cmap = plt.get_cmap("Blues")
 
     if normalize:
-        cm = cm.astype('float') / (cm.sum(axis=1)[:, np.newaxis] + 1e-8) # divide by 0
-        
-    fig = plt.figure(figsize=(8, 8), facecolor='w')
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+        cm = cm.astype("float") / (cm.sum(axis=1)[:, np.newaxis] + 1e-8)  # divide by 0
+
+    fig = plt.figure(figsize=(8, 8), facecolor="w")
+    plt.imshow(cm, interpolation="nearest", cmap=cmap)
     plt.title(title)
     plt.colorbar()
 
     thresh = cm.max() / 1.5 if normalize else cm.max() / 2
-    
+
     if target_names is not None:
         tick_marks_x = np.arange(len(target_names[0]))
         tick_marks_y = np.arange(len(target_names[1]))
 
         plt.xticks(tick_marks_x, target_names[0])
         plt.yticks(tick_marks_y, target_names[1])
-    
+
     if labels:
         for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
             if normalize:
-                plt.text(j, i, "{:0.4f}".format(cm[i, j]),
-                         horizontalalignment="center",
-                         color="white" if cm[i, j] > thresh else "black")
+                plt.text(
+                    j,
+                    i,
+                    "{:0.4f}".format(cm[i, j]),
+                    horizontalalignment="center",
+                    color="white" if cm[i, j] > thresh else "black",
+                )
             else:
-                plt.text(j, i, "{:,}".format(cm[i, j]),
-                         horizontalalignment="center",
-                         color="white" if cm[i, j] > thresh else "black")
+                plt.text(
+                    j,
+                    i,
+                    "{:,}".format(cm[i, j]),
+                    horizontalalignment="center",
+                    color="white" if cm[i, j] > thresh else "black",
+                )
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label\nf1score={:0.4f}; accuracy={:0.4f}; misclass={:0.4f}'.format(f1score, accuracy, misclass))
-    if not os.path.exists('./AGC2021_confMat'):
-        os.mkdir('./AGC2021_confMat')
-    if not os.path.exists(f'./AGC2021_confMat/{exp_name}'):
-        os.mkdir(f'./AGC2021_confMat/{exp_name}')
+    plt.ylabel("True label")
+    plt.xlabel(
+        "Predicted label\nf1score={:0.4f}; accuracy={:0.4f}; misclass={:0.4f}".format(
+            f1score, accuracy, misclass
+        )
+    )
+    if not os.path.exists("./AGC2021_confMat"):
+        os.mkdir("./AGC2021_confMat")
+    if not os.path.exists(f"./AGC2021_confMat/{exp_name}"):
+        os.mkdir(f"./AGC2021_confMat/{exp_name}")
     plt.savefig(f"AGC2021_confMat/{exp_name}/{name}{'_norm' if normalize else ''}.png", dpi=300)
     plt.close(fig)
     # plt.show()
 
     return fig
 
-def plot_f1score(f1_list, exp_name, target_names, cmap=None, title='2021AGC F1 score'):
+
+def plot_f1score(f1_list, exp_name, target_names, cmap=None, title="2021AGC F1 score"):
     f1_list = np.array([[f1 for f1, f1l in f1_list]])
-    macrof1 = np.sum(f1_list)/len(f1_list[0])
+    macrof1 = np.sum(f1_list) / len(f1_list[0])
     target_names = [LABELS_NAME[i] for i in target_names]
-    if 'zero' in exp_name:
-        title = '2021AGC F1 score - GT,Pred 0 case'
+    if "zero" in exp_name:
+        title = "2021AGC F1 score - GT,Pred 0 case"
 
     if cmap is None:
-        cmap = plt.get_cmap('Blues')
+        cmap = plt.get_cmap("Blues")
 
-    fig = plt.figure(figsize=(10, 5), facecolor='w')
-    plt.imshow(f1_list, interpolation='nearest', vmin=0, vmax=1, cmap=cmap)
+    fig = plt.figure(figsize=(10, 5), facecolor="w")
+    plt.imshow(f1_list, interpolation="nearest", vmin=0, vmax=1, cmap=cmap)
     plt.title(title)
 
     thresh = 0.5
 
     for i, j in itertools.product(range(f1_list.shape[0]), range(f1_list.shape[1])):
-        plt.text(j, i, "{:0.4f}".format(f1_list[i, j]),
-                    horizontalalignment="center",
-                    color="white" if f1_list[i, j] > thresh else "black")
+        plt.text(
+            j,
+            i,
+            "{:0.4f}".format(f1_list[i, j]),
+            horizontalalignment="center",
+            color="white" if f1_list[i, j] > thresh else "black",
+        )
 
     tick_marks_x = np.arange(len(target_names))
     plt.xticks(tick_marks_x, target_names)
     plt.yticks([])
 
     plt.tight_layout()
-    plt.xlabel('Class name\n\nmacro f1 score={:0.4f}'.format(macrof1))
-    if not os.path.exists('./AGC2021_confMat'):
-        os.mkdir('./AGC2021_confMat')
-    if not os.path.exists(f'./AGC2021_confMat/{exp_name}'):
-        os.mkdir(f'./AGC2021_confMat/{exp_name}')
+    plt.xlabel("Class name\n\nmacro f1 score={:0.4f}".format(macrof1))
+    if not os.path.exists("./AGC2021_confMat"):
+        os.mkdir("./AGC2021_confMat")
+    if not os.path.exists(f"./AGC2021_confMat/{exp_name}"):
+        os.mkdir(f"./AGC2021_confMat/{exp_name}")
     plt.savefig(f"AGC2021_confMat/{exp_name}/f1score.png", dpi=300)
     plt.close(fig)
 
