@@ -4,8 +4,8 @@ from pathlib import Path
 
 FILE = Path(__file__).resolve()
 SAVE_DIR = FILE.parents[0].as_posix()
-SAVE_OUTPUT = "output_results.json"
-SAVE_F1 = "f1_results.json"
+SAVE_OUTPUT = "ten_output_results.json"
+SAVE_F1 = "test_f1_results.json"
 sys.path.append(FILE.parents[1].as_posix())
 
 import json
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     imgsz = [hyp["imgsz"]] * 2
     # inits for TTA
     TTA_SCALE = hyp["tta-scale"]
+    TTA_AUG = [x for i, x in enumerate(TTA_AUG_LIST) if i in hyp["tta-aug"]]
 
     ######################################################################################
     # 2. Load JSON for each Augmentation
@@ -52,84 +53,90 @@ if __name__ == "__main__":
     if "search_result" in hyp.keys() and os.path.exists(hyp["search_result"]):
         with open(hyp["search_result"]) as f:
             total_results = json.load(f)
+    else:
+        total_results = {}
 
     ######################################################################################
     # 2-1. Make JSON for each Augmentation
     ######################################################################################
-    else:
-        # load model
-        device = torch.device("cuda:0")
-        ckpt = torch.load(f"{SAVE_DIR}/{hyp['weights'][0]}", map_location=device)
+    # load model
+    device = torch.device("cuda:0")
+    model_list = []
+    for model_weights in hyp["weights"]:
+        ckpt = torch.load(f"{SAVE_DIR}/{model_weights}", map_location=device)
         model = ckpt["ema" if ckpt.get("ema") else "model"].float()
         stride = int(model.stride.max())
+
         if hyp["fuse"]:
             model.fuse()
         model.eval()
         if hyp["half"]:
             model.half()  # to FP16
-        # load datasets
-        dataset = LoadImages(
-            hyp["path"], img_size=imgsz, stride=stride, auto=False  # if hyp["tta"] else True
-        )
-        loader = torch.utils.data.DataLoader
-        dataloader = loader(dataset, batch_size=hyp["batchsz"], num_workers=hyp["numworker"])
+        model_list.append(model)
+    # load datasets
+    dataset = LoadImages(
+        hyp["path"], img_size=imgsz, stride=stride, auto=False  # if hyp["tta"] else True
+    )
+    loader = torch.utils.data.DataLoader
+    dataloader = loader(dataset, batch_size=hyp["batchsz"], num_workers=hyp["numworker"])
 
-        # run once
+    # run once
+    for model in model_list:
         model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))
-        yolov5 = oda.wrap_yolov5(model, non_max_suppression)
+    yolov5 = oda.wrap_yolov5(model_list, non_max_suppression)
 
-        # Get all combinations of Auglist
-        combinations = list(product(*list([i, None] for i in TTA_AUG_LIST)))
-        print(
-            f"Total combinations: scale {len(TTA_SCALE)} x comb {len(combinations)} = {len(TTA_SCALE)*len(combinations)}"
-        )
-        total_results = defaultdict(list)
-        for scale_idx, s in enumerate(TTA_SCALE):
-            for comb_idx, tta_combination in enumerate(combinations, 1):
-                torch.cuda.empty_cache()
-                # Make oda_aug
-                oda_aug = oda.TTACompose(
-                    [oda.MultiScale(s)]
-                    + [tta_transform for tta_transform in tta_combination if tta_transform]
-                )
-                print(f"{scale_idx*len(combinations) + comb_idx} tta_combination: {oda_aug}")
-                # Inference using oda_aug
-                for path, batch, batch_orig in tqdm(dataloader):
-                    # Preprocess batch
-                    batch = torch.from_numpy(np.asarray(batch)).to(device)
-                    batch = batch / 255.0  # 0 - 255 to 0.0 - 1.0
-                    batch = oda_aug.batch_augment(batch).half()
-                    with torch.no_grad():
-                        results = yolov5(batch)
-                        for idx, (p, orig_size, result) in enumerate(
-                            zip(path, batch_orig, results)
-                        ):
-                            dict_file = {
-                                "file_name": f"{p.split('/')[-1]}",
-                                "input_size": batch.shape[-2:],
-                                "orig_size": orig_size[:2].tolist(),
-                                "result": {},
-                            }
-                            boxes = result["boxes"].cpu().numpy()
-                            boxes = oda_aug.deaugment_boxes(boxes)
+    # Get all combinations of Auglist
+    combinations = list(product(*list([i, None] for i in TTA_AUG)))
+    print(
+        f"Total combinations: scale {len(TTA_SCALE)} x comb {len(combinations)} = {len(TTA_SCALE)*len(combinations)}"
+    )
+    total_results = defaultdict(list)
+    for scale_idx, s in enumerate(TTA_SCALE):
+        for comb_idx, tta_combination in enumerate(combinations, 1):
+            torch.cuda.empty_cache()
+            # Make oda_aug
+            oda_aug = oda.TTACompose(
+                [oda.MultiScale(s)]
+                + [tta_transform for tta_transform in tta_combination if tta_transform]
+            )
+            if str(oda_aug) in total_results.keys():
+                continue
+            print(f"{scale_idx*len(combinations) + comb_idx} tta_combination: {oda_aug}")
+            # Inference using oda_aug
+            for path, batch, batch_orig in tqdm(dataloader):
+                # Preprocess batch
+                batch = torch.from_numpy(np.asarray(batch)).to(device)
+                batch = batch / 255.0  # 0 - 255 to 0.0 - 1.0
+                batch = oda_aug.batch_augment(batch).half()
+                with torch.no_grad():
+                    results = yolov5(batch)
+                    for idx, (p, orig_size, result) in enumerate(zip(path, batch_orig, results)):
+                        dict_file = {
+                            "file_name": f"{p.split('/')[-1]}",
+                            "input_size": batch.shape[-2:],
+                            "orig_size": orig_size[:2].tolist(),
+                            "result": {},
+                        }
+                        boxes = result["boxes"].cpu().numpy()
+                        boxes = oda_aug.deaugment_boxes(boxes)
 
-                            thresh = 0.01
-                            ind = result["scores"].cpu().numpy() > thresh
+                        thresh = 0.01
+                        ind = result["scores"].cpu().numpy() > thresh
 
-                            dict_file["result"]["boxes"] = boxes[ind].tolist()
-                            dict_file["result"]["scores"] = (
-                                result["scores"].cpu().numpy()[ind].tolist()
-                            )
-                            dict_file["result"]["labels"] = (
-                                result["labels"].cpu().numpy()[ind].tolist()
-                            )
-                            total_results[str(oda_aug)].append(dict_file)
-                # Save results json
-                if os.path.exists(f"{SAVE_DIR}/{SAVE_OUTPUT}"):
-                    os.remove(f"{SAVE_DIR}/{SAVE_OUTPUT}")
-                with open(f"{SAVE_DIR}/{SAVE_OUTPUT}", "w") as f:
-                    json.dump(total_results, f, indent=4)
-                print(f">> Results saved to {SAVE_DIR}/{SAVE_OUTPUT}")
+                        dict_file["result"]["boxes"] = boxes[ind].tolist()
+                        dict_file["result"]["scores"] = (
+                            result["scores"].cpu().numpy()[ind].tolist()
+                        )
+                        dict_file["result"]["labels"] = (
+                            result["labels"].cpu().numpy()[ind].tolist()
+                        )
+                        total_results[str(oda_aug)].append(dict_file)
+            # Save results json
+            if os.path.exists(f"{SAVE_DIR}/{SAVE_OUTPUT}"):
+                os.remove(f"{SAVE_DIR}/{SAVE_OUTPUT}")
+            with open(f"{SAVE_DIR}/{SAVE_OUTPUT}", "w") as f:
+                json.dump(total_results, f, indent=4)
+            print(f">> Results saved to {SAVE_DIR}/{SAVE_OUTPUT}")
 
     ######################################################################################
     # 3. Get optimal combination using JSON
@@ -146,7 +153,7 @@ if __name__ == "__main__":
     for scale_list in product(*list([f"MultiScale({scl})", None] for scl in TTA_SCALE)):
         scale_transforms.append([scl_tf for scl_tf in scale_list if scl_tf is not None])
     scale_transform = scale_transforms[:-1]
-    oda_transforms = product(*list([str(i), None] for i in TTA_AUG_LIST))
+    oda_transforms = product(*list([str(i), None] for i in TTA_AUG))
 
     nms = oda.nms_func(skip_box_thr=0.5)
 
@@ -193,8 +200,12 @@ if __name__ == "__main__":
                 [comb_bboxes[idx], np.array([comb_scores[idx]]).T, np.array([comb_labels[idx]]).T],
                 axis=1,
             )
+            pred_copy = pred.copy()
             # NMS thresholding
-            pred = pred[pred[:, 4] > 0.4]
+            pred = pred[pred[:, 4] > hyp["tta-conf"]]
+            # for no object case
+            if len(pred) == 0 and len(pred_copy) != 0:
+                pred = pred_copy[pred_copy[:, 4] > hyp["tta-conf"] * 0.5]
             # Post process
             pred[:, :4] = scale_coords(input_size, pred[:, :4], orig_size).round()
             h, w = orig_size
@@ -236,6 +247,9 @@ if __name__ == "__main__":
                 if k == -1:
                     continue
                 answer["result"].append({"label": hyp["names"][k], "count": str(v)})
+
+            if len(answer["result"]) == 0:
+                answer["result"].append({"label": hyp["names"][0], "count": str(1)})
             answers["answer"].append(answer)
 
         # Calculate f1 score of each combination
