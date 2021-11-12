@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 from einops import asnumpy, rearrange
+from .native import MedianPool2d, SameAvg2D
 
 from .native import MedianPool2d, SameAvg2D
 
@@ -494,16 +495,23 @@ class wrap_effdet:
 
 # for use in EfficientDets
 class wrap_yolov5:
-    def __init__(self, model, nms):
+    def __init__(self, model_list, nms):
         # imsize.. input size of the model
-        self.model = model
+        self.model_list = model_list
         self.nms = nms
 
     def __call__(
         self, img, conf_thres=0.2, iou_thres=0.6, agnostic_nms=False, multi_label=True, max_det=140
     ):
         # inference
-        batch = self.model(img)[0]
+        batch = None
+        for model in self.model_list:
+            if batch is None:
+                batch = model(img)[0]
+            else:
+                batch += model(img)[0]
+        batch /= len(self.model_list)
+
         batch = self.nms(
             batch,
             conf_thres,

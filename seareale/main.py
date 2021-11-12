@@ -19,15 +19,12 @@ from utils.general import *
 
 TTA_AUG_LIST = [
     oda.Rotate90Left(),
-    # oda.Rotate90Right(),
-    # oda.HorizontalFlip(),
-    # oda.VerticalFlip(),
-    # oda.Multiply(0.9),
-    # oda.Multiply(1.1),
-    # oda.RandColorJitter(),
-    # oda.Blur(),
-    # oda.MotionBlur(),
-    # oda.MedianBlur(),
+    oda.Rotate90Right(),
+    oda.HorizontalFlip(),
+    oda.VerticalFlip(),
+    oda.RandColorJitter(),
+    oda.TorchBlur(),
+    oda.TorchMedianBlur()
 ]
 
 if __name__ == "__main__":
@@ -42,15 +39,20 @@ if __name__ == "__main__":
     imgsz = [hyp["imgsz"]] * 2
 
     # load model
-    device = torch.device("cuda:0")
-    ckpt = torch.load(f"{SAVE_DIR}/{hyp['weights'][0]}", map_location=device)
-    model = ckpt["ema" if ckpt.get("ema") else "model"].float()
-    stride = int(model.stride.max())
-    if hyp["fuse"]:
-        model.fuse()
-    model.eval()
-    if hyp["half"]:
-        model.half()  # to FP16
+    model_list = []
+    for model_weights in hyp['weights']:
+        device = torch.device("cuda:0")
+        ckpt = torch.load(f"{SAVE_DIR}/{model_weights}", map_location=device)
+        model = ckpt["ema" if ckpt.get("ema") else "model"].float()
+        stride = int(model.stride.max())
+        
+        if hyp["fuse"]:
+            model.fuse()
+        model.eval()
+        if hyp["half"]:
+            model.half()  # to FP16
+    
+        model_list.append(model)
 
     # load datasets
     dataset = LoadImages(
@@ -61,14 +63,16 @@ if __name__ == "__main__":
     ######################################################################################
 
     # run once
-    model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))
+    for model in model_list:
+        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))
 
     # inits for TTA
     if hyp["tta"]:
         TTA_AUG = [x for i, x in enumerate(TTA_AUG_LIST) if i in hyp["tta-aug"]]
         TTA_SCALE = hyp["tta-scale"]
 
-        yolov5 = oda.wrap_yolov5(model, non_max_suppression)
+        yolov5 = oda.wrap_yolov5(model_list, non_max_suppression) 
+        ########################################
         tta_model = oda.TTAWrapper(
             yolov5, TTA_AUG, TTA_SCALE, device=device, half_flag=hyp["half"]
         )
@@ -81,7 +85,7 @@ if __name__ == "__main__":
     # inference
     dict_json = {"answer": []}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
-    box_count = [0, 0, 0, 0]
+    box_count = [0, 0, 0, 0, 0]
     for path, img, im0 in tqdm(dataloader):
         t1 = time_sync()  # start time
 
@@ -97,12 +101,21 @@ if __name__ == "__main__":
             boxes, scores, labels = tta_model(img)
 
             pred = []
+            pred_backup = []
             for b, s, l in zip(boxes, scores, labels):
                 p = np.concatenate([b, np.array([s]).T, np.array([l]).T], axis=1)
 
+                # for No object case
+                p_copy = p.copy()
+                pred_backup.append(p_copy)
+
                 # TTA conf_thres
                 p = p[p[:, 4] > hyp["tta-conf"]]
-
+                
+                # for No object case
+                if len(p) == 0 and len(p_copy) != 0:
+                    p = p_copy[p_copy[:, 4] > hyp["tta-conf"]*0.5]
+                    
                 pred.append(p)
 
             t3 = t4 = time_sync()  # inference time
@@ -111,12 +124,32 @@ if __name__ == "__main__":
         else:
             # Inference
             img = img.half() if hyp["half"] else img.float()  # uint8 to fp16/32
-            pred = model(img.to(device))[0]
+
+            pred = None
+            for model in model_list:
+                if pred is None:
+                    pred = model(img.to(device))[0]
+                else:
+                    pred += model(img.to(device))[0]
+            pred /= len(model_list)
 
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
+            
+            pred_backup = pred.copy()
 
-            # NMS
+            # for No object case
+            pred_copy = non_max_suppression(
+                pred,
+                hyp["conf"]*0.5,
+                hyp["iou"],
+                None,
+                hyp["agnostic-nms"],
+                multi_label=False,
+                max_det=hyp["max-det"],
+            )
+
+            # NMS           
             pred = non_max_suppression(
                 pred,
                 hyp["conf"],
@@ -126,6 +159,12 @@ if __name__ == "__main__":
                 multi_label=False,
                 max_det=hyp["max-det"],
             )
+            
+            # for No object case
+            for idx, (batch, batch_copy) in enumerate(zip(pred, pred_copy)):
+                if len(batch) == 0 and len(batch_copy) != 0:
+                    pred[idx] = batch_copy
+
             t4 = time_sync()  # NMS time
             dt[2] += t4 - t3
 
@@ -154,16 +193,17 @@ if __name__ == "__main__":
                     box_count[1] += 1
                     det[idx, 5] = -1
 
-                obj_area = bbox[2] * bbox[3]
-                # remove oversize bbox
-                if obj_area / img_area > hyp["bbox-over"]:
-                    box_count[2] += 1
-                    det[idx, 5] = -1
+                if hyp["bbox-filter"]:
+                    obj_area = bbox[2] * bbox[3]
+                    # remove oversize bbox
+                    if obj_area / img_area > hyp["bbox-over"]:
+                        box_count[2] += 1
+                        det[idx, 5] = -1
 
-                # remove undersize bbox
-                if obj_area < (h / hyp["bbox-under"] * w / hyp["bbox-under"]):
-                    box_count[3] += 1
-                    det[idx, 5] = -1
+                    # remove undersize bbox
+                    if obj_area < (h / hyp["bbox-under"] * w / hyp["bbox-under"]):
+                        box_count[3] += 1
+                        det[idx, 5] = -1
 
             # count objects
             for cls_num in det[:, 5]:
@@ -175,7 +215,15 @@ if __name__ == "__main__":
 
             # results to dict
             for k, v in dict_count.items():
+                if k == -1:
+                    continue
                 dict_file["result"].append({"label": hyp["names"][k], "count": str(v)})
+            
+            # for No object case
+            if len(dict_file["result"]) == 0:
+                box_count[4] += 1
+                dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
+            
             dict_json["answer"].append(dict_file)
 
         t5 = time_sync()  # json time
@@ -195,7 +243,7 @@ if __name__ == "__main__":
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
     print(
-        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]})"
+        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]}), No Object({box_count[4]})"
     )
     print(f"-------------------------------------------------------------------------------------")
 
