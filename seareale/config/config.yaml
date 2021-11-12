@@ -21,7 +21,7 @@ tta-conf: 0.4
 #     oda.TorchBlur(),
 #     oda.TorchMedianBlur()
 # ]
-tta-aug: [0] # index of tta-aug-list
+tta-aug: [2] # index of tta-aug-list
 tta-scale: [1]
 
 outbound: 20 # pixel num from edges
