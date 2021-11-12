@@ -1,4 +1,5 @@
 # cache
+.history/
 .lh/
 .vscode/
 __pycache__/
@@ -12,8 +13,7 @@ archive/
 # file
 install.txt
 *.pt
-*.ipynb
+*.zip
 
 # data
-*.txt
 *.jpg
