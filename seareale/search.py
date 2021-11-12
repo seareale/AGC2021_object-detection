@@ -255,7 +255,7 @@ if __name__ == "__main__":
         # Calculate f1 score of each combination
         true_dict = get_true_annotation(f"{SAVE_DIR}/config/config.yaml", one_path=None)
         pred_dict = get_pred_annotation(None, data=answers)
-        f1, *_ = AGC2021_f1score(true_dict, pred_dict, print_result=False)
+        f1, *_ = AGC2021_f1score(true_dict, pred_dict, inclue_zero=True, print_result=False)
 
         f1_results[comb_name] = f1
         # sort f1_results using value
