@@ -39,15 +39,20 @@ if __name__ == "__main__":
     imgsz = [hyp["imgsz"]] * 2
 
     # load model
-    device = torch.device("cuda:0")
-    ckpt = torch.load(f"{SAVE_DIR}/{hyp['weights'][0]}", map_location=device)
-    model = ckpt["ema" if ckpt.get("ema") else "model"].float()
-    stride = int(model.stride.max())
-    if hyp["fuse"]:
-        model.fuse()
-    model.eval()
-    if hyp["half"]:
-        model.half()  # to FP16
+    model_list = []
+    for model_weights in hyp['weights']:
+        device = torch.device("cuda:0")
+        ckpt = torch.load(f"{SAVE_DIR}/{model_weights}", map_location=device)
+        model = ckpt["ema" if ckpt.get("ema") else "model"].float()
+        stride = int(model.stride.max())
+        
+        if hyp["fuse"]:
+            model.fuse()
+        model.eval()
+        if hyp["half"]:
+            model.half()  # to FP16
+    
+        model_list.append(model)
 
     # load datasets
     dataset = LoadImages(
@@ -58,14 +63,16 @@ if __name__ == "__main__":
     ######################################################################################
 
     # run once
-    model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))
+    for model in model_list:
+        model(torch.zeros(1, 3, *imgsz).to(device).type_as(next(model.parameters())))
 
     # inits for TTA
     if hyp["tta"]:
         TTA_AUG = [x for i, x in enumerate(TTA_AUG_LIST) if i in hyp["tta-aug"]]
         TTA_SCALE = hyp["tta-scale"]
 
-        yolov5 = oda.wrap_yolov5(model, non_max_suppression)
+        yolov5 = oda.wrap_yolov5(model_list, non_max_suppression) 
+        ########################################
         tta_model = oda.TTAWrapper(
             yolov5, TTA_AUG, TTA_SCALE, device=device, half_flag=hyp["half"]
         )
@@ -117,7 +124,14 @@ if __name__ == "__main__":
         else:
             # Inference
             img = img.half() if hyp["half"] else img.float()  # uint8 to fp16/32
-            pred = model(img.to(device))[0]
+            
+            pred = None
+            for model in model_list:     
+                if pred is None:
+                    pred = model(img.to(device))[0]
+                else:
+                    pred += model(img.to(device))[0]
+            pred /= len(model_list)
 
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
