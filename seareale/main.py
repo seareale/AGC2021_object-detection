@@ -1,4 +1,5 @@
 import sys
+import warnings
 from pathlib import Path
 
 FILE = Path(__file__).resolve()
@@ -243,7 +244,12 @@ if __name__ == "__main__":
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
     print(
-        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]}), No Object({box_count[4]})"
+        f">> Results : All(%d), Outbound(%d), Over-size(%d), Under-size(%d), No Object(%d)"
+        % box_count
+    )
+    warnings.warn(
+        f">> Results : All(%d), Outbound(%d), Over-size(%d), Under-size(%d), No Object(%d)"
+        % box_count
     )
     print(f"-------------------------------------------------------------------------------------")
 

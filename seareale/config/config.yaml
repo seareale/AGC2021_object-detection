@@ -33,4 +33,6 @@ agnostic-nms: False
 tta: True
 half: True
 fuse: False
+
+# for search.py
 search_result: '/home/jiuk/AGC2021_submit/seareale/en_output_results.json'
