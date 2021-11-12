@@ -124,9 +124,9 @@ if __name__ == "__main__":
         else:
             # Inference
             img = img.half() if hyp["half"] else img.float()  # uint8 to fp16/32
-            
+
             pred = None
-            for model in model_list:     
+            for model in model_list:
                 if pred is None:
                     pred = model(img.to(device))[0]
                 else:

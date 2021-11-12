@@ -505,7 +505,7 @@ class wrap_yolov5:
         batch = None
         for model in self.model_list:
             if batch is None:
-                batch = model(img)
+                batch = model(img)[0]
             else:
                 batch += model(img)[0]
         batch /= len(self.model_list)
