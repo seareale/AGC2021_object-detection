@@ -58,7 +58,10 @@ if __name__ == "__main__":
 
     # load datasets
     dataset = LoadImages(
-        hyp["path"], img_size=imgsz, stride=stride, auto=False  # if hyp["tta"] else True
+        hyp["path"],
+        img_size=imgsz,
+        stride=stride,
+        auto=False if hyp["tta"] or hyp["batchsz"] > 1 else True,
     )
     loader = torch.utils.data.DataLoader
     dataloader = loader(dataset, batch_size=hyp["batchsz"], num_workers=hyp["numworker"])
@@ -138,7 +141,7 @@ if __name__ == "__main__":
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
 
-            pred_backup = pred.copy()
+            pred_backup = pred.clone().detach()
 
             # for No object case
             pred_copy = non_max_suppression(
