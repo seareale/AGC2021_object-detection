@@ -4,15 +4,15 @@ from pathlib import Path
 
 FILE = Path(__file__).resolve()
 SAVE_DIR = FILE.parents[0].as_posix()
-SAVE_OUTPUT = "ten_output_results.json"
-SAVE_F1 = "test_f1_results.json"
+SAVE_OUTPUT = "output_results.json"
+SAVE_F1 = "f1_results.json"
 sys.path.append(FILE.parents[1].as_posix())
 
 import json
 import os
 import warnings
 from collections import defaultdict
-from itertools import product
+from itertools import permutations, product
 
 import torch
 import yaml
@@ -32,6 +32,15 @@ TTA_AUG_LIST = [
     oda.TorchBlur(),
     oda.TorchMedianBlur(),
 ]
+v_list = [0.8, 1.2]
+
+TTA_AUG_ORDER_VALUE = [
+    [oda.Brightness(v) for v in v_list],
+    [oda.Contrast(v) for v in v_list],
+    [oda.Saturation(v) for v in v_list],
+    [oda.Hue(v) for v in v_list],
+]
+
 
 if __name__ == "__main__":
     warnings.filterwarnings(action="ignore")
@@ -87,56 +96,67 @@ if __name__ == "__main__":
 
     # Get all combinations of Auglist
     combinations = list(product(*list([i, None] for i in TTA_AUG)))
+    order_value_list = []
+    for value in product(*list([*values, None] for values in TTA_AUG_ORDER_VALUE)):
+        # choose order
+        for ov in permutations(vs := [v for v in value if v], len(vs)):
+            order_value_list.append(ov)
     print(
-        f"Total combinations: scale {len(TTA_SCALE)} x comb {len(combinations)} = {len(TTA_SCALE)*len(combinations)}"
+        f"Total combinations: scale {len(TTA_SCALE)} x comb {len(combinations)} x order_value {len(order_value_list)} = {len(TTA_SCALE)*len(combinations)*len(order_value_list)}"
     )
     total_results = defaultdict(list)
     for scale_idx, s in enumerate(TTA_SCALE):
-        for comb_idx, tta_combination in enumerate(combinations, 1):
-            torch.cuda.empty_cache()
-            # Make oda_aug
-            oda_aug = oda.TTACompose(
-                [oda.MultiScale(s)]
-                + [tta_transform for tta_transform in tta_combination if tta_transform]
-            )
-            if str(oda_aug) in total_results.keys():
-                continue
-            print(f"{scale_idx*len(combinations) + comb_idx} tta_combination: {oda_aug}")
-            # Inference using oda_aug
-            for path, batch, batch_orig in tqdm(dataloader):
-                # Preprocess batch
-                batch = torch.from_numpy(np.asarray(batch)).to(device)
-                batch = batch / 255.0  # 0 - 255 to 0.0 - 1.0
-                batch = oda_aug.batch_augment(batch).half()
-                with torch.no_grad():
-                    results = yolov5(batch)
-                    for idx, (p, orig_size, result) in enumerate(zip(path, batch_orig, results)):
-                        dict_file = {
-                            "file_name": f"{p.split('/')[-1]}",
-                            "input_size": batch.shape[-2:],
-                            "orig_size": orig_size[:2].tolist(),
-                            "result": {},
-                        }
-                        boxes = result["boxes"].cpu().numpy()
-                        boxes = oda_aug.deaugment_boxes(boxes)
+        for comb_idx, tta_combination in enumerate(combinations, 0):
+            for order_value_idx, order_value in enumerate(order_value_list, 1):
+                torch.cuda.empty_cache()
+                # Make oda_aug
+                oda_aug = oda.TTACompose(
+                    [oda.MultiScale(s)]
+                    + [tta_transform for tta_transform in tta_combination if tta_transform]
+                    + list(order_value)
+                )
+                if str(oda_aug) in total_results.keys():
+                    continue
+                print(
+                    f"{scale_idx*len(combinations) + len(order_value_list)*comb_idx + order_value_idx} tta_combination: {oda_aug}"
+                )
+                # Inference using oda_aug
+                for path, batch, batch_orig in tqdm(dataloader):
+                    # Preprocess batch
+                    batch = torch.from_numpy(np.asarray(batch)).to(device)
+                    batch = batch / 255.0  # 0 - 255 to 0.0 - 1.0
+                    batch = oda_aug.batch_augment(batch).half()
+                    with torch.no_grad():
+                        results = yolov5(batch)
+                        for idx, (p, orig_size, result) in enumerate(
+                            zip(path, batch_orig, results)
+                        ):
+                            dict_file = {
+                                "file_name": f"{p.split('/')[-1]}",
+                                "input_size": batch.shape[-2:],
+                                "orig_size": orig_size[:2].tolist(),
+                                "result": {},
+                            }
+                            boxes = result["boxes"].cpu().numpy()
+                            boxes = oda_aug.deaugment_boxes(boxes)
 
-                        thresh = 0.01
-                        ind = result["scores"].cpu().numpy() > thresh
+                            thresh = 0.01
+                            ind = result["scores"].cpu().numpy() > thresh
 
-                        dict_file["result"]["boxes"] = boxes[ind].tolist()
-                        dict_file["result"]["scores"] = (
-                            result["scores"].cpu().numpy()[ind].tolist()
-                        )
-                        dict_file["result"]["labels"] = (
-                            result["labels"].cpu().numpy()[ind].tolist()
-                        )
-                        total_results[str(oda_aug)].append(dict_file)
-            # Save results json
-            if os.path.exists(f"{SAVE_DIR}/{SAVE_OUTPUT}"):
-                os.remove(f"{SAVE_DIR}/{SAVE_OUTPUT}")
-            with open(f"{SAVE_DIR}/{SAVE_OUTPUT}", "w") as f:
-                json.dump(total_results, f, indent=4)
-            print(f">> Results saved to {SAVE_DIR}/{SAVE_OUTPUT}")
+                            dict_file["result"]["boxes"] = boxes[ind].tolist()
+                            dict_file["result"]["scores"] = (
+                                result["scores"].cpu().numpy()[ind].tolist()
+                            )
+                            dict_file["result"]["labels"] = (
+                                result["labels"].cpu().numpy()[ind].tolist()
+                            )
+                            total_results[str(oda_aug)].append(dict_file)
+                # Save results json
+                if os.path.exists(f"{SAVE_DIR}/{SAVE_OUTPUT}"):
+                    os.remove(f"{SAVE_DIR}/{SAVE_OUTPUT}")
+                with open(f"{SAVE_DIR}/{SAVE_OUTPUT}", "w") as f:
+                    json.dump(total_results, f, indent=4)
+                print(f">> Results saved to {SAVE_DIR}/{SAVE_OUTPUT}")
 
     ######################################################################################
     # 3. Get optimal combination using JSON
@@ -154,14 +174,22 @@ if __name__ == "__main__":
         scale_transforms.append([scl_tf for scl_tf in scale_list if scl_tf is not None])
     scale_transform = scale_transforms[:-1]
     oda_transforms = product(*list([str(i), None] for i in TTA_AUG))
-
+    ov_transforms = product(*list([*values, None] for values in TTA_AUG_ORDER_VALUE))
+    # for value in product(*list([*values, None] for values in TTA_AUG_ORDER_VALUE)):
+    #     ov_transforms.append(v for v in value if v])
     nms = oda.nms_func(skip_box_thr=0.5)
 
     num_of_data = len(total_results[next(iter(total_results.keys()))])
-    all_combinations = list(product(scale_transform, oda_transforms))
+    all_combinations = list(product(scale_transform, oda_transforms, ov_transforms))
     print(f"Get performance of {len(all_combinations)} comb")
-    for s_list, oda_list in tqdm(all_combinations):
-        comb_name = str(s_list) + "x" + str([aug for aug in oda_list if aug is not None])
+    for s_list, oda_list, ov_list in tqdm(all_combinations):
+        comb_name = (
+            str(s_list)
+            + "x"
+            + str([aug for aug in oda_list if aug])
+            + "x"
+            + str([aug for aug in ov_list if aug])
+        )
         if comb_name in f1_results.keys():
             continue
         comb_names = [None for _ in range(num_of_data)]
@@ -172,14 +200,18 @@ if __name__ == "__main__":
         comb_labels = [[] for _ in range(num_of_data)]
         for s in s_list:
             for comb in product(*list([i, None] for i in oda_list)):
-                augs_name = str([s] + [aug for aug in comb if aug is not None]).replace("'", "")
-                for idx, result_per_img in enumerate(total_results[augs_name]):
-                    comb_names[idx] = result_per_img["file_name"]
-                    comb_input_sizes[idx] = result_per_img["input_size"]
-                    comb_orig_sizes[idx] = result_per_img["orig_size"]
-                    comb_bboxes[idx].append(result_per_img["result"]["boxes"])
-                    comb_scores[idx].append(result_per_img["result"]["scores"])
-                    comb_labels[idx].append(result_per_img["result"]["labels"])
+                for value_list in product(*list([*value, None] for value in ov_list)):
+                    for ov in permutations(vs := [v for v in value_list if v], len(vs)):
+                        augs_name = str([s] + [aug for aug in comb if aug] + list(ov)).replace(
+                            "'", ""
+                        )
+                        for idx, result_per_img in enumerate(total_results[augs_name]):
+                            comb_names[idx] = result_per_img["file_name"]
+                            comb_input_sizes[idx] = result_per_img["input_size"]
+                            comb_orig_sizes[idx] = result_per_img["orig_size"]
+                            comb_bboxes[idx].append(result_per_img["result"]["boxes"])
+                            comb_scores[idx].append(result_per_img["result"]["scores"])
+                            comb_labels[idx].append(result_per_img["result"]["labels"])
 
         # NMS and post process for each image's result
         answers = {"answer": []}
