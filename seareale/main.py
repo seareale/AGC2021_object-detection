@@ -73,7 +73,6 @@ if __name__ == "__main__":
         TTA_SCALE = hyp["tta-scale"]
 
         yolov5 = oda.wrap_yolov5(model_list, non_max_suppression)
-        ########################################
         tta_model = oda.TTAWrapper(
             yolov5, TTA_AUG, TTA_SCALE, device=device, half_flag=hyp["half"]
         )
