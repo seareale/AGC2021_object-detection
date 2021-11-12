@@ -1,12 +1,5 @@
-<<<<<<< HEAD
-weights: [
-  'weights/l6_all_last.pt', 
-  'weights/x6_neck-det_last.pt',]
-  # 'weights/s6_neck-det_last.pt']
-=======
 weights: ['weights/l6_all_last.pt',
           'weights/x6_neck-det_last.pt']
->>>>>>> 8f70cd393f2c74ed99e195bbfb44e80ee95a40e1
 path: '/home/agc2021/dataset'
 
 names: ['c_1', 'c_2', 'c_3', 'c_4', 'c_5', 'c_6', 'c_7']
@@ -29,11 +22,7 @@ tta-conf: 0.4
 #     oda.TorchBlur(),
 #     oda.TorchMedianBlur()
 # ]
-<<<<<<< HEAD
 tta-aug: [0,1, 2, 3, 5, 6] # index of tta-aug-list
-=======
-tta-aug: [2] # index of tta-aug-list
->>>>>>> 8f70cd393f2c74ed99e195bbfb44e80ee95a40e1
 tta-scale: [1]
 
 outbound: 20 # pixel
