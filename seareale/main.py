@@ -4,7 +4,6 @@ from pathlib import Path
 
 FILE = Path(__file__).resolve()
 SAVE_DIR = FILE.parents[0].as_posix()
-SAVE_FILE = "answersheet_4_03_seareale.json"
 sys.path.append(SAVE_DIR)
 
 import json
@@ -33,8 +32,8 @@ v_list = [1.2]
 
 TTA_AUG_ORDER_VALUE = [
     # [oda.Brightness(v) for v in v_list],
-    [oda.Contrast(v) for v in v_list],
-    [oda.Saturation(v) for v in v_list],
+    # [oda.Contrast(v) for v in v_list],
+    # [oda.Saturation(v) for v in v_list],
     # [oda.Hue(v) for v in v_list],
 ]
 
@@ -48,10 +47,12 @@ if __name__ == "__main__":
 
     with open(f"{SAVE_DIR}/config/config.yaml") as f:
         hyp = yaml.safe_load(f)
+    SAVE_FILE = hyp["savename"]
     imgsz = [hyp["imgsz"]] * 2
 
     # load model
     model_list = []
+    hyp["weights"] = hyp["weights"] if isinstance(hyp["weights"], list) else [hyp["weights"]]
     for model_weights in hyp["weights"]:
         device = torch.device("cuda:0")
         ckpt = torch.load(f"{SAVE_DIR}/{model_weights}", map_location=device)
