@@ -32,13 +32,13 @@ TTA_AUG_LIST = [
     oda.TorchBlur(),
     oda.TorchMedianBlur(),
 ]
-v_list = [0.8, 1.2]
+v_list = [1.2]
 
 TTA_AUG_ORDER_VALUE = [
-    [oda.Brightness(v) for v in v_list],
+    # [oda.Brightness(v) for v in v_list],
     [oda.Contrast(v) for v in v_list],
     [oda.Saturation(v) for v in v_list],
-    [oda.Hue(v) for v in v_list],
+    # [oda.Hue(v) for v in v_list],
 ]
 
 
@@ -59,11 +59,15 @@ if __name__ == "__main__":
     ######################################################################################
     # 2. Load JSON for each Augmentation
     ######################################################################################
+    total_results = defaultdict(list)
     if "search_result" in hyp.keys() and os.path.exists(hyp["search_result"]):
         with open(hyp["search_result"]) as f:
-            total_results = json.load(f)
+            print(f"Loading {hyp['search_result']}")
+            results = json.load(f)
+            for k, v in results.items():
+                total_results[k] = v
     else:
-        total_results = {}
+        print("No search result found")
 
     ######################################################################################
     # 2-1. Make JSON for each Augmentation
@@ -104,7 +108,6 @@ if __name__ == "__main__":
     print(
         f"Total combinations: scale {len(TTA_SCALE)} x comb {len(combinations)} x order_value {len(order_value_list)} = {len(TTA_SCALE)*len(combinations)*len(order_value_list)}"
     )
-    total_results = defaultdict(list)
     for scale_idx, s in enumerate(TTA_SCALE):
         for comb_idx, tta_combination in enumerate(combinations, 0):
             for order_value_idx, order_value in enumerate(order_value_list, 1):
@@ -118,7 +121,7 @@ if __name__ == "__main__":
                 if str(oda_aug) in total_results.keys():
                     continue
                 print(
-                    f"{scale_idx*len(combinations) + len(order_value_list)*comb_idx + order_value_idx} tta_combination: {oda_aug}"
+                    f"{scale_idx*len(combinations) + len(order_value_list)*comb_idx + order_value_idx}/{len(TTA_SCALE)*len(combinations)*len(order_value_list)} tta_combination: {oda_aug}"
                 )
                 # Inference using oda_aug
                 for path, batch, batch_orig in tqdm(dataloader):
@@ -200,7 +203,7 @@ if __name__ == "__main__":
         comb_labels = [[] for _ in range(num_of_data)]
         for s in s_list:
             for comb in product(*list([i, None] for i in oda_list)):
-                for value_list in product(*list([*value, None] for value in ov_list)):
+                for value_list in product(*list([value, None] for value in ov_list)):
                     for ov in permutations(vs := [v for v in value_list if v], len(vs)):
                         augs_name = str([s] + [aug for aug in comb if aug] + list(ov)).replace(
                             "'", ""
@@ -287,7 +290,7 @@ if __name__ == "__main__":
         # Calculate f1 score of each combination
         true_dict = get_true_annotation(f"{SAVE_DIR}/config/config.yaml", one_path=None)
         pred_dict = get_pred_annotation(None, data=answers)
-        f1, *_ = AGC2021_f1score(true_dict, pred_dict, inclue_zero=True, print_result=False)
+        f1, *_ = AGC2021_f1score(true_dict, pred_dict, include_zero=True, print_result=False)
 
         f1_results[comb_name] = f1
         # sort f1_results using value
