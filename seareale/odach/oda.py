@@ -94,6 +94,9 @@ class Brightness(Base):
     def deaugment_boxes(self, boxes):
         return boxes
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.brightness})"
+
 
 class Contrast(Base):
     def __init__(self, contrast=1.2) -> None:
@@ -108,6 +111,9 @@ class Contrast(Base):
 
     def deaugment_boxes(self, boxes):
         return boxes
+
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.contrast})"
 
 
 class Saturation(Base):
@@ -124,10 +130,13 @@ class Saturation(Base):
     def deaugment_boxes(self, boxes):
         return boxes
 
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.saturation})"
+
 
 class Hue(Base):
     def __init__(self, hue=1.2) -> None:
-        self.hue = hue
+        self.hue = hue - 1
 
     def augment(self, image):
         image = TF.adjust_hue(image, self.hue)
@@ -138,6 +147,9 @@ class Hue(Base):
 
     def deaugment_boxes(self, boxes):
         return boxes
+
+    def __repr__(self) -> str:
+        return super().__repr__() + f"({self.hue:.1f})"
 
 
 class RandColorJitter(Base):
@@ -263,22 +275,6 @@ class Rotate90Right(Base):
         res_boxes[:, [1, 3]] = self.imsize - boxes[:, [2, 0]]
         res_boxes[:, [0, 2]] = boxes[:, [3, 1]]
         return res_boxes
-
-
-class Multiply(Base):
-    # change brightness of image
-    def __init__(self, scale):
-        # scale is a float value 0.5~1.5
-        self.scale = scale
-
-    def augment(self, image):
-        return image * self.scale
-
-    def batch_augment(self, images):
-        return images * self.scale
-
-    def deaugment_boxes(self, boxes):
-        return boxes
 
 
 class MultiScale(Base):
@@ -424,6 +420,7 @@ class TTAWrapper:
         model,
         tta,
         scale=[1],
+        order_values=[],
         nms="wbf",
         iou_thr=0.5,
         skip_box_thr=0.5,
@@ -431,7 +428,7 @@ class TTAWrapper:
         device=torch.device("cpu"),
         half_flag=False,
     ):
-        self.ttas = self.generate_TTA(tta, scale)
+        self.ttas = self.generate_TTA(tta, scale, order_values)
         self.model = model  # .eval()
         # set nms function
         # default is weighted box fusion.
@@ -439,8 +436,17 @@ class TTAWrapper:
         self.device = device
         self.half_flag = half_flag
 
-    def generate_TTA(self, tta, scale):
-        from itertools import product
+    def generate_TTA(self, tta, scale, order_values):
+        """
+        order_values:
+            list of list.
+            ex)
+            [
+                [Brightness(0.8), Brightness(1.2)],
+                [Hue(0.8), Hue(1.2)]
+            ]
+        """
+        from itertools import permutations, product
 
         tta_transforms = []
 
@@ -448,22 +454,40 @@ class TTAWrapper:
         if len(scale) == 1 and scale[0] == 1:
             print("preparing tta for monoscale..")
             for tta_combination in product(*list([i, None] for i in tta)):
-                tta_transforms.append(
-                    TTACompose(
-                        [tta_transform for tta_transform in tta_combination if tta_transform]
-                    )
-                )
+                # choose value
+                for value_list in product(*list([*value, None] for value in order_values)):
+                    # choose order
+                    for ov in permutations(vs := [v for v in value_list if v], len(vs)):
+                        tta_transforms.append(
+                            TTACompose(
+                                [
+                                    tta_transform
+                                    for tta_transform in tta_combination
+                                    if tta_transform
+                                ]
+                                + list(ov)
+                            )
+                        )
         # Multiscale TTAs
         else:
             print("preparing tta for multiscale..")
             for s in scale:
                 for tta_combination in product(*list([i, None] for i in tta)):
-                    tta_transforms.append(
-                        TTACompose(
-                            [MultiScale(s)]
-                            + [tta_transform for tta_transform in tta_combination if tta_transform]
-                        )
-                    )
+                    # choose value
+                    for value_list in product(*list([*value, None] for value in order_values)):
+                        # choose order
+                        for ov in permutations(vs := [v for v in value_list if v], len(vs)):
+                            tta_transforms.append(
+                                TTACompose(
+                                    [MultiScale(s)]
+                                    + [
+                                        tta_transform
+                                        for tta_transform in tta_combination
+                                        if tta_transform
+                                    ]
+                                    + list(ov)
+                                )
+                            )
         return tta_transforms
 
     def model_inference(self, img):
