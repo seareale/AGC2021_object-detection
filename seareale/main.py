@@ -1,4 +1,5 @@
 import sys
+import warnings
 from pathlib import Path
 
 FILE = Path(__file__).resolve()
@@ -67,7 +68,10 @@ if __name__ == "__main__":
 
     # load datasets
     dataset = LoadImages(
-        hyp["path"], img_size=imgsz, stride=stride, auto=False  # if hyp["tta"] else True
+        hyp["path"],
+        img_size=imgsz,
+        stride=stride,
+        auto=False if hyp["tta"] or hyp["batchsz"] > 1 else True,
     )
     loader = torch.utils.data.DataLoader
     dataloader = loader(dataset, batch_size=hyp["batchsz"], num_workers=hyp["numworker"])
@@ -101,6 +105,7 @@ if __name__ == "__main__":
     dict_json = {"answer": []}
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     box_count = [0, 0, 0, 0, 0]
+    count_name = ["All", "Outbound", "Over-size", "Under-size", "No Object"]
     for path, img, im0 in tqdm(dataloader):
         t1 = time_sync()  # start time
 
@@ -151,7 +156,7 @@ if __name__ == "__main__":
             t3 = time_sync()  # inference time
             dt[1] += t3 - t2
 
-            pred_backup = pred.copy()
+            pred_backup = pred.clone().detach()
 
             # for No object case
             pred_copy = non_max_suppression(
@@ -237,6 +242,7 @@ if __name__ == "__main__":
             # for No object case
             if len(dict_file["result"]) == 0:
                 box_count[4] += 1
+                warnings.warn(f"NO object : {box_count}")
                 dict_file["result"].append({"label": hyp["names"][0], "count": str(1)})
 
             dict_json["answer"].append(dict_file)
@@ -257,9 +263,7 @@ if __name__ == "__main__":
     print(f">> Time : model load - %.6fs" % time_load)
     print(f"           detection - %.6fs" % time_det)
     print(f"                 all - %.6fs" % time_all)
-    print(
-        f">> Results : All({box_count[0]}), Outbound({box_count[1]}), Over-size({box_count[2]}), Under-size({box_count[3]}), No Object({box_count[4]})"
-    )
+    print(f">> Results : {', '.join([f'{name}({t})' for name,t in zip(count_name, box_count)])}")
     print(f"-------------------------------------------------------------------------------------")
 
     # Save results json
