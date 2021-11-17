@@ -28,7 +28,7 @@ Our object detection model is implemented in [YOLOv5](https://github.com/ultraly
 
 
 ## <div align="center">Key points</div>
-### Bbox Cutmix 
+### 1. Bbox Cutmix 
 There were No-object images in training when using ***mosaic*** because of image center position of objects. So we implemented a augmentation pasting bboxes in the empty space of a training image(***Bbox Cumtix***).
 <div align="center">
 <img src="asset/image01.png" hspace=20/><img src="asset/image02.png" hspace=20/>
@@ -50,10 +50,10 @@ def selfmix(self, img, labels, h, w):
     return img, labels
 ```
 
-### Transfer learning
+### 2. Transfer learning
 ...
 
-### TTA
+### 3. TTA
 In addition, ***TTA*** was used to improve performance. ***TTA*** was implemented based on [ODAch](https://github.com/kentaroy47/ODA-Object-Detection-ttA), an object detection-based tool.
 
 1) Add a `wrap_yolov5` for YOLOv5
@@ -98,7 +98,7 @@ TTA_AUG_LIST = [
 ]
 ```
 
-### Output post-processing
+### 4. Output post-processing
 ...
 
 
