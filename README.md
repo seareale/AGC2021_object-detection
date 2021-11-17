@@ -1,4 +1,4 @@
-# AGC2021_submit
+# AGC2021_object-detection
 ![](asset/agc2021_1.png)  
 **[2021 AI Grand Challenge](https://www.ai-challenge.or.kr/) (Nov 10, 2021 ~ Nov 14, 2021)**  
 - Object Detection Track  
