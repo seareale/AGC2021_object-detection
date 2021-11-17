@@ -1,0 +1,16 @@
+path : '/ssd_2/RecycleTrash/yolo/images/'
+
+train: ['201028_kvl',
+        '201031_data', 
+        '201103_data', '201107_data', '201110_data', '201114_data', 
+        '201117_data', '201118_data', '201127_data',
+        '201208_img', '201209_last',
+        '210727_easy', '210727_hard',
+        '210809_easy', '210809_hard',
+        '210901_easy', '210901_hard',
+        '210906_easy', '210906_hard'
+        ]
+val: ['test']
+
+nc: 7
+names: ['paper','paperpack','can','glass','pet','plastic','vinyl']

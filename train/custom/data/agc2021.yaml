@@ -1,0 +1,10 @@
+path : '/ssd_2/RecycleTrash/yolo/images/'
+
+train: ['211014_data_re', '211021_data', '211022_data', '211025_data',
+        '211026_data', '211027_data', '211028_data', '211029_data', 
+        '211030_data', '211031_data', 
+        '211101_data', '211102_data', '211103_data', '211104_data'] 
+val: ['test_2020AGC_452', 'test_2021AGC_30', 'test_211026_405', 'test_211103_400']
+
+nc: 7
+names: ['paper','paperpack','can','glass','pet','plastic','vinyl']
