@@ -50,15 +50,55 @@ def selfmix(self, img, labels, h, w):
     return img, labels
 ```
 
----
-***continue***
-
-
 ### Transfer learning
+...
 
 ### TTA
+In addition, ***TTA*** was used to improve performance. ***TTA*** was implemented based on [ODAch](https://github.com/kentaroy47/ODA-Object-Detection-ttA), an object detection-based tool.
+
+1) Add a `wrap_yolov5` for YOLOv5
+```python
+class wrap_yolov5:
+    def __init__(self, model_list, nms):
+        # imsize.. input size of the model
+        self.model_list = model_list
+        self.nms = nms
+
+    def __call__(
+        self, img, conf_thres=0.2, iou_thres=0.6, agnostic_nms=False, multi_label=True, max_det=140
+    ):
+        # inference
+        batch = None
+        for model in self.model_list:
+            if batch is None:
+                batch = model(img)[0]
+            else:
+                batch += model(img)[0]
+        batch /= len(self.model_list)
+
+        batch = self.nms(batch, conf_thres, iou_thres, None, agnostic_nms,
+                         multi_label=multi_label, max_det=max_det)
+
+        predictions = []
+        for pred in batch:
+            predictions.append({"boxes": pred[:, :4], "scores": pred[:, 4], "labels": pred[:, 5]})
+
+        return predictions
+```
+2) Use more ***TTA*** variation
+```python
+TTA_AUG_LIST = [
+    oda.Rotate90Left(),
+    oda.Rotate90Right(),
+    oda.HorizontalFlip(),
+    oda.VerticalFlip(),
+    oda.RandColorJitter(),
+    oda.TorchBlur(),
+    oda.TorchMedianBlur(),
+]
+```
 
 ### Output post-processing
-
+...
 
 
