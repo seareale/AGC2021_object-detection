@@ -1,4 +1,4 @@
-path : '/ssd_2/RecycleTrash/yolo/images/'
+path : '/ssd_2/RecycleTrash/images/'
 
 train: ['211014_data_re', '211021_data', '211022_data', '211025_data',
         '211026_data', '211027_data', '211028_data', '211029_data', 
