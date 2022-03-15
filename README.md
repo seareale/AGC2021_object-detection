@@ -50,10 +50,7 @@ def selfmix(self, img, labels, h, w):
     return img, labels
 ```
 
-### 2. Transfer learning
-...
-
-### 3. TTA
+### 2. TTA
 In addition, ***TTA*** was used to improve performance. ***TTA*** was implemented based on [ODAch](https://github.com/kentaroy47/ODA-Object-Detection-ttA), an object detection-based tool.
 
 1) Add a `wrap_yolov5` for YOLOv5
@@ -97,8 +94,3 @@ TTA_AUG_LIST = [
     oda.TorchMedianBlur(),
 ]
 ```
-
-### 4. Output post-processing
-...
-
-
