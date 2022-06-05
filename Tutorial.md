@@ -7,7 +7,7 @@ This document is for the project: Development of Recyclable Objects Detection Mo
 ```bash
 $ conda create -n recycle python=3.8
 $ conda activate recycle
-$ git clone https://github.com/ultralytics/yolov5.git
+$ git clone https://github.com/ultralytics/yolov5.git # commit hash : 47233e1698b89fc437a4fb9463c815e9171be955
 $ cd yolov5
 $ pip install -r requirements.txt
 ```
