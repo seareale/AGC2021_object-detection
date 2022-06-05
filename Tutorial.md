@@ -1,6 +1,17 @@
 # Recyclable Objects Detection
 This document is for the project: Development of Recyclable Objects Detection Model. For more information or any questions, please contact to seareale@gmail.com
 
+### Table of contents
+- [How to start](#how-to-start)
+	* [1. Environments](#1-environments)
+	* [2. Run](#2-run)
+- [History](#history)
+- [Experiments](#experiments)
+	* [1. Bounding box CutMix](#1-bounding-box-cutmix)
+	* [2. Standardized Distance-based IoU](#2-standardized-distance-based-iou)
+- [Checkpoints](#checkpoints)
+- [Reference](#reference)
+
 ## <div align="center">How to start</div>
 ### 1. Environments
 1) create a conda environment and install YOLOv5[[1]](https://github.com/ultralytics/yolov5).
@@ -180,7 +191,7 @@ Found out the problems of DIoU and developed SDIoU(Standardized Distance-based I
 
 ## <div align="center">Experiments</div>
 The following experiments were conducted with 70,000 images, not the total dataset(130,000 images) and used the COCO pretrained weight(yolov5x6.pt).
-### 1. BboxCutMix(Bounding box CutMix)
+### 1. Bounding box CutMix
 <div align='center' style='column-count: 1;'>
 
 <p>Results of Recyclable Objects dataset</p>
@@ -200,7 +211,7 @@ Base(Mosaic)             | 0.91090 | 0.79401
 </div>
 
 
-### 2. SDIoU(Standardized Distance-based IoU)
+### 2. Standardized Distance-based IoU
 <div align='center' style='column-count: 2;'>
 
 <p>Results of Recyclable Objects dataset</p>
