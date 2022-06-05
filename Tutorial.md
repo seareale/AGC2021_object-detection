@@ -237,6 +237,7 @@ SDIoU(variance) | **0.89029** | 0.68335
 ```bash
 # In 60 server, '/ssd_2/RecycleTrash/yolov5-weights/'
 ├── agc2020 # trained with agc2020 dataset
+│   ├── for_paper # deprecated
 │   ├── recycle_l6_last
 │   ├── recycle_m6_last
 │   ├── recycle_s6_last
