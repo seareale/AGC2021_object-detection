@@ -28,7 +28,7 @@ Our object detection model is implemented in [YOLOv5](https://github.com/ultraly
 
 
 ## <div align="center">Key points</div>
-### 1. Bbox Cutmix 
+### 1. BboxCutMix 
 There were No-object images in training when using ***mosaic*** because of image center position of objects. So we implemented a augmentation pasting bboxes in the empty space of a training image(***Bbox Cumtix***).
 <div align="center">
 <img src="asset/image01.png" hspace=20/><img src="asset/image02.png" hspace=20/>
@@ -94,3 +94,7 @@ TTA_AUG_LIST = [
     oda.TorchMedianBlur(),
 ]
 ```
+
+<br/><div align="center">
+by [seareale](https://github.com/seareale) | [KVL Lab](http://vl.knu.ac.kr) | [KNU](http://knu.ac.kr)
+</div>
