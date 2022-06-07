@@ -299,3 +299,7 @@ SDIoU(variance) | **0.89029** | 0.68335
 4. TensorRT experiments, https://github.com/heechul-knu/yolov5-recycle-tensorrt
 5. Pruning experiments 1, https://github.com/heechul-knu/yolov5-slimming
 6. Pruning experiments 2, https://github.com/heechul-knu/yolov5-recycle-pruning
+
+<br/><div align="center">
+by [seareale](https://github.com/seareale) | [KVL Lab](http://vl.knu.ac.kr) | [KNU](http://knu.ac.kr)
+</div>
